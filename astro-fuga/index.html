@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
   [hidden] { display: none !important; }
-  /* Layout: vista dalla cabina a tutto schermo, strumenti agli angoli, mirino al centro */
+  /* Layout: tunnel 3D a tutto schermo, la navetta gira sulla circonferenza; strumenti agli angoli */
   :root {
     --void: #05070d;
     --glass: rgba(10, 18, 34, 0.72);
@@ -40,6 +40,7 @@
   .stat { display: grid; line-height: 1.05; }
   .lbl { font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
   .val { font-family: var(--display); font-weight: 700; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  .val.small { font-size: 1.05rem; }
   #score { color: var(--cyan); }
   #speed.boost { color: var(--amber); }
   .bar { width: min(34vw, 180px); height: 7px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
@@ -47,23 +48,20 @@
   #shieldBar { background: var(--cyan); }
   #shieldBar.low { background: var(--red); }
   #energyBar { background: var(--amber); }
+  #heatBar { background: var(--cyan); }
+  #heatBar.hot { background: var(--red); }
   .mute {
     pointer-events: auto; font: 600 0.72rem var(--mono); letter-spacing: 0.06em; color: var(--ink);
     background: var(--glass); border: 1px solid rgba(94, 242, 255, 0.35); border-radius: 4px; padding: 6px 10px; cursor: pointer;
   }
-  .mute:focus-visible, .btn:focus-visible, #boostBtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .mute:focus-visible, .btn:focus-visible, .touch:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
-  /* Cabina: angoli del vetro e mirino */
   .frame { position: absolute; inset: 0; z-index: 1; pointer-events: none;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(0,0,0,0.6) 100%); }
-  .reticle { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; transform: translate(-50%, -50%); z-index: 1; pointer-events: none; }
-  .reticle::before, .reticle::after { content: ""; position: absolute; background: rgba(94, 242, 255, 0.7); }
-  .reticle::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); -webkit-mask: linear-gradient(#000 35%, transparent 35% 65%, #000 65%); mask: linear-gradient(#000 35%, transparent 35% 65%, #000 65%); }
-  .reticle::after { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); -webkit-mask: linear-gradient(90deg, #000 35%, transparent 35% 65%, #000 65%); mask: linear-gradient(90deg, #000 35%, transparent 35% 65%, #000 65%); }
   #flash { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; }
 
   .toast {
-    position: absolute; left: 0; right: 0; top: 34%; z-index: 2; text-align: center; pointer-events: none;
+    position: absolute; left: 0; right: 0; top: 30%; z-index: 2; text-align: center; pointer-events: none;
     font-family: var(--display); font-weight: 700; font-size: clamp(1.4rem, 5vw, 2.2rem); letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--amber); text-shadow: 0 0 18px rgba(255, 181, 71, 0.55);
     opacity: 0; transition: opacity 0.15s;
@@ -80,7 +78,7 @@
     background: rgba(3, 5, 10, 0.5);
   }
   .card {
-    width: 100%; max-width: 440px; display: grid; gap: 14px;
+    width: 100%; max-width: 460px; display: grid; gap: 14px;
     background: var(--glass); border: 1px solid rgba(94, 242, 255, 0.3); border-radius: 6px;
     padding: 26px 24px 24px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
@@ -101,15 +99,16 @@
   }
   .btn:active { transform: translateY(2px); }
 
-  #boostBtn {
-    position: absolute; z-index: 2; display: none;
-    right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  .touch {
+    position: absolute; z-index: 2; display: none; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
     width: 84px; height: 84px; border-radius: 50%;
-    font: 700 0.85rem var(--display); letter-spacing: 0.1em; color: var(--amber);
-    background: var(--glass); border: 2px solid var(--amber); cursor: pointer;
+    font: 700 0.85rem var(--display); letter-spacing: 0.1em; background: var(--glass); cursor: pointer;
   }
+  #fireBtn { right: max(16px, env(safe-area-inset-right, 0px)); color: var(--cyan); border: 2px solid var(--cyan); }
+  #boostBtn { left: max(16px, env(safe-area-inset-left, 0px)); color: var(--amber); border: 2px solid var(--amber); }
+  #fireBtn.on { background: rgba(94, 242, 255, 0.3); }
   #boostBtn.on { background: rgba(255, 181, 71, 0.3); }
-  @media (pointer: coarse) { #boostBtn { display: block; } }
+  @media (pointer: coarse) { .touch { display: block; } }
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 </style>
 </head>
@@ -117,18 +116,18 @@
 
 <div id="app">
   <div class="frame"></div>
-  <div class="reticle"></div>
   <div id="flash"></div>
 
   <header class="hud">
     <div class="group">
       <div class="stat"><span class="lbl">Punti</span><span id="score" class="val">0</span></div>
-      <div class="stat"><span class="lbl">Record</span><span id="best" class="val" style="font-size:1.05rem">0</span></div>
+      <div class="stat"><span class="lbl">Record</span><span id="best" class="val small">0</span></div>
       <div class="stat"><span class="lbl">Scudo</span><div class="bar"><div id="shieldBar"></div></div></div>
     </div>
     <div class="group right">
       <div class="stat"><span class="lbl">Velocità km/s</span><span id="speed" class="val">0.0</span></div>
       <div class="stat"><span class="lbl">Turbo</span><div class="bar"><div id="energyBar"></div></div></div>
+      <div class="stat"><span class="lbl">Calore laser</span><div class="bar"><div id="heatBar"></div></div></div>
       <button id="mute" class="mute" type="button" aria-pressed="false">Suono: sì</button>
     </div>
   </header>
@@ -138,14 +137,14 @@
   <section id="menu" class="overlay">
     <div class="card">
       <h1>Astro <span>Fuga</span></h1>
-      <p>Sei ai comandi di una navetta lanciata dentro una fascia di asteroidi. Più vai avanti, più si va veloci.</p>
+      <p>La tua navetta corre lungo l'anello di un tunnel di asteroidi e può girarci intorno a 360°. Schiva, spara e resisti più che puoi.</p>
       <ul class="rules">
-        <li><b>Asteroidi</b><span>Ogni urto toglie un terzo dello scudo.</span></li>
+        <li><b>Anello</b><span>Gira a destra o a sinistra lungo la circonferenza, anche per tutto il giro.</span></li>
+        <li><b>Laser</b><span>Distruggi gli asteroidi. Quelli grandi vanno colpiti più volte. Se spari troppo il laser si surriscalda.</span></li>
         <li><b>Sfiorati</b><span>Passa vicino a un asteroide senza toccarlo: +50 punti.</span></li>
         <li><b>Cristalli</b><span>Ricaricano scudo e turbo.</span></li>
-        <li><b>Turbo</b><span>Più velocità, punti doppi.</span></li>
       </ul>
-      <p class="hint">Sterza con il mouse, le frecce o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>. Tieni premuto <kbd>Spazio</kbd> per il turbo. Sul telefono trascina il dito e tieni premuto TURBO.</p>
+      <p class="hint">Gira con <kbd>←</kbd> <kbd>→</kbd> o <kbd>A</kbd> <kbd>D</kbd>, oppure spostando il mouse a destra e a sinistra. Spara con <kbd>Spazio</kbd> o tenendo premuto il clic. Turbo con <kbd>Shift</kbd>. Sul telefono trascina il dito per girare e usa i tasti FUOCO e TURBO.</p>
       <button id="play" class="btn" type="button">Decolla</button>
     </div>
   </section>
@@ -156,6 +155,7 @@
       <div class="final">
         <div class="stat"><span class="lbl">Punti</span><span id="finalScore" class="val">0</span></div>
         <div class="stat"><span class="lbl">Record</span><span id="finalBest" class="val">0</span></div>
+        <div class="stat"><span class="lbl">Distrutti</span><span id="finalKills" class="val">0</span></div>
         <div class="stat"><span class="lbl">Sfiorati</span><span id="finalNear" class="val">0</span></div>
       </div>
       <p id="overMsg" class="hint"></p>
@@ -163,16 +163,19 @@
     </div>
   </section>
 
-  <button id="boostBtn" type="button" aria-label="Turbo">TURBO</button>
+  <button id="boostBtn" class="touch" type="button" aria-label="Turbo">TURBO</button>
+  <button id="fireBtn" class="touch" type="button" aria-label="Spara">FUOCO</button>
 </div>
 
 <script src="three.min.js"></script>
 <script>
 (() => {
   // ---------- Configurazione ----------
-  const BX = 7, BY = 4.2;          // limiti di movimento della navetta
+  const R = 4.6;                     // raggio della circonferenza su cui corre la navetta
   const SPAWN_Z = -220;
-  const BASE_SPEED = 38, MAX_SPEED = 135;
+  const BASE_SPEED = 38, MAX_SPEED = 130;
+  const TURN = 3.4;                  // velocità di rotazione massima (radianti al secondo)
+  const LASER_SPEED = 190, FIRE_EVERY = 0.11, HEAT_PER_SHOT = 6.5;
 
   // ---------- Scena ----------
   const app = document.getElementById('app');
@@ -182,36 +185,65 @@
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x05070d);
-  scene.fog = new THREE.Fog(0x05070d, 70, 210);
-  const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1200);
-  camera.rotation.order = 'YXZ';
+  scene.fog = new THREE.Fog(0x05070d, 70, 215);
+  const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1200);
 
-  scene.add(new THREE.AmbientLight(0x334466, 0.7));
+  scene.add(new THREE.AmbientLight(0x334466, 0.75));
   const sun = new THREE.DirectionalLight(0xffd7a8, 1.2); sun.position.set(6, 5, 3); scene.add(sun);
   const rim = new THREE.DirectionalLight(0x6688ff, 0.5); rim.position.set(-6, -3, -4); scene.add(rim);
 
-  // Pianeta lontano
   const planet = new THREE.Mesh(new THREE.SphereGeometry(70, 40, 30), new THREE.MeshStandardMaterial({ color: 0x7a4bb0, roughness: 1, fog: false }));
   planet.position.set(-150, 55, -620); scene.add(planet);
   const moon = new THREE.Mesh(new THREE.SphereGeometry(12, 24, 18), new THREE.MeshStandardMaterial({ color: 0xc9b9a6, roughness: 1, fog: false }));
   moon.position.set(140, -30, -560); scene.add(moon);
 
-  // Stelle a strisce
+  // Stelle a strisce (fuori dal tunnel)
   const STARS = 700;
   const starPos = new Float32Array(STARS * 6);
   const starGeo = new THREE.BufferGeometry();
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  const stars = new THREE.LineSegments(starGeo, new THREE.LineBasicMaterial({ color: 0xbcd4ff, transparent: true, opacity: 0.85, fog: false }));
-  scene.add(stars);
+  scene.add(new THREE.LineSegments(starGeo, new THREE.LineBasicMaterial({ color: 0xbcd4ff, transparent: true, opacity: 0.8, fog: false })));
   const starData = [];
   function placeStar(s, z) {
-    let x, y;
-    do { x = (Math.random() - 0.5) * 120; y = (Math.random() - 0.5) * 80; } while (Math.abs(x) < 3 && Math.abs(y) < 3);
-    s.x = x; s.y = y; s.z = z;
+    const a = Math.random() * Math.PI * 2, d = 10 + Math.random() * 60;
+    s.x = Math.cos(a) * d; s.y = Math.sin(a) * d; s.z = z;
   }
   for (let i = 0; i < STARS; i++) { const s = {}; placeStar(s, -Math.random() * 320); starData.push(s); }
 
-  // Asteroidi: geometrie bitorzolute deterministiche (nessuna crepa tra le facce)
+  // Anelli del tunnel che scorrono e anello guida della navetta
+  const tunnel = [];
+  const ringGeo = new THREE.BufferGeometry().setFromPoints(
+    Array.from({ length: 16 }, (_, i) => new THREE.Vector3(Math.cos(i / 16 * Math.PI * 2) * (R + 1.8), Math.sin(i / 16 * Math.PI * 2) * (R + 1.8), 0)));
+  const ringMat = new THREE.LineBasicMaterial({ color: 0x2f5a8f, transparent: true, opacity: 0.6 });
+  for (let i = 0; i < 10; i++) {
+    const l = new THREE.LineLoop(ringGeo, ringMat);
+    l.position.z = -i * 24; scene.add(l); tunnel.push(l);
+  }
+  const pathGeo = new THREE.BufferGeometry().setFromPoints(
+    Array.from({ length: 96 }, (_, i) => new THREE.Vector3(Math.cos(i / 96 * Math.PI * 2) * R, Math.sin(i / 96 * Math.PI * 2) * R, 0)));
+  const path = new THREE.LineLoop(pathGeo, new THREE.LineBasicMaterial({ color: 0x5ef2ff, transparent: true, opacity: 0.22 }));
+  path.position.z = -0.6; scene.add(path);
+
+  // Navetta
+  function makeShip() {
+    const g = new THREE.Group();
+    const hull = new THREE.MeshStandardMaterial({ color: 0xdfe7f2, roughness: 0.45, metalness: 0.3, flatShading: true });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x2a3550, roughness: 0.6, flatShading: true });
+    const body = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.7, 6), hull); body.rotation.x = -Math.PI / 2; g.add(body);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.07, 0.55), dark); wing.position.set(0, 0, 0.35); g.add(wing);
+    [-1, 1].forEach(s => {
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.8), hull); tip.position.set(s * 0.95, 0, 0.2); g.add(tip);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.075, 0.12), new THREE.MeshBasicMaterial({ color: 0x5ef2ff })); stripe.position.set(s * 0.6, 0.005, 0.5); g.add(stripe);
+    });
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.45), dark); fin.position.set(0, 0.22, 0.55); g.add(fin);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8), new THREE.MeshBasicMaterial({ color: 0x5ef2ff })); glow.position.z = 0.85; g.add(glow);
+    g.userData.glow = glow;
+    return g;
+  }
+  const ship = makeShip();
+  scene.add(ship);
+
+  // Asteroidi
   function rockGeo(seed) {
     const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, v = new THREE.Vector3();
     for (let i = 0; i < p.count; i++) {
@@ -228,7 +260,7 @@
   for (let i = 0; i < 90; i++) {
     const m = new THREE.Mesh(rockGeos[i % 4], rockMats[(i * 7) % 4]);
     m.visible = false; scene.add(m);
-    rocks.push({ mesh: m, active: false, r: 1, z: 0, spin: new THREE.Vector3() });
+    rocks.push({ mesh: m, active: false, r: 1, z: 0, x: 0, y: 0, hp: 1, hitT: 0, spin: new THREE.Vector3() });
   }
 
   // Cristalli
@@ -238,20 +270,52 @@
   for (let i = 0; i < 6; i++) {
     const g = new THREE.Group();
     g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.45), crystalMat));
-    const halo = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), haloMat); g.add(halo);
+    g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.8), haloMat));
     g.visible = false; scene.add(g);
-    crystals.push({ mesh: g, active: false, z: 0 });
+    crystals.push({ mesh: g, active: false, z: 0, x: 0, y: 0 });
+  }
+
+  // Laser
+  const lasers = [];
+  const laserGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.8, 6);
+  const laserMat = new THREE.MeshBasicMaterial({ color: 0x9ff8ff });
+  for (let i = 0; i < 40; i++) {
+    const m = new THREE.Mesh(laserGeo, laserMat); m.rotation.x = Math.PI / 2; m.visible = false; scene.add(m);
+    lasers.push({ mesh: m, active: false, x: 0, y: 0, z: 0 });
+  }
+
+  // Esplosioni a particelle
+  const booms = [];
+  const PARTS = 40;
+  for (let i = 0; i < 12; i++) {
+    const pos = new Float32Array(PARTS * 3), geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ color: 0xffb547, size: 0.28, transparent: true, opacity: 1, depthWrite: false });
+    const pts = new THREE.Points(geo, mat); pts.visible = false; pts.frustumCulled = false; scene.add(pts);
+    booms.push({ pts, pos, vel: new Float32Array(PARTS * 3), t: 0, life: 0.9, active: false });
+  }
+  function explode(x, y, z, size, color = 0xffb547) {
+    const b = booms.find(o => !o.active) || booms[0];
+    b.active = true; b.t = 0; b.life = 0.7 + size * 0.15;
+    b.pts.material.color.setHex(color); b.pts.material.size = 0.2 + size * 0.12; b.pts.visible = true;
+    for (let i = 0; i < PARTS; i++) {
+      const k = i * 3, u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, s = (3 + Math.random() * 7) * (0.6 + size * 0.4), q = Math.sqrt(1 - u * u);
+      b.pos[k] = x; b.pos[k + 1] = y; b.pos[k + 2] = z;
+      b.vel[k] = Math.cos(a) * q * s; b.vel[k + 1] = Math.sin(a) * q * s; b.vel[k + 2] = u * s;
+    }
   }
 
   // ---------- Stato ----------
   const $ = id => document.getElementById(id);
-  const ui = { score: $('score'), best: $('best'), speed: $('speed'), shield: $('shieldBar'), energy: $('energyBar'), toast: $('toast') };
+  const ui = { score: $('score'), best: $('best'), speed: $('speed'), shield: $('shieldBar'), energy: $('energyBar'), heat: $('heatBar'), toast: $('toast') };
   let best = 0;
   try { best = +localStorage.getItem('astroFuga.best') || 0; } catch (e) {}
 
-  let state = 'menu', score = 0, speed = BASE_SPEED, shield = 100, energy = 100, elapsed = 0, nearCount = 0;
-  let px = 0, py = 0, vx = 0, vy = 0, aimX = 0, aimY = 0, invuln = 0, boosting = false;
+  let state = 'menu', score = 0, speed = BASE_SPEED, shield = 100, energy = 100, heat = 0, overheated = false;
+  let elapsed = 0, nearCount = 0, kills = 0, invuln = 0, boosting = false;
+  let theta = -Math.PI / 2, omega = 0, fireCd = 0, gunSide = 1;
   let spawnAcc = 0, crystalAcc = 0, shake = 0, flashA = 0, deadT = 0;
+  let mouseSteer = 0, touchSteer = 0, mouseFire = false, touchFire = false, touchBoost = false;
   const keys = {};
 
   let toastTimer = 0;
@@ -302,7 +366,7 @@
   function engineLevel(on) {
     if (!engine) return;
     const t = actx.currentTime;
-    engine.g.gain.setTargetAtTime(on && !muted ? 0.035 : 0, t, 0.1);
+    engine.g.gain.setTargetAtTime(on && !muted ? 0.03 : 0, t, 0.1);
     engine.o.frequency.setTargetAtTime(38 + speed * 0.45 * (boosting ? 1.25 : 1), t, 0.2);
     engine.f.frequency.setTargetAtTime(260 + speed * 4, t, 0.2);
   }
@@ -313,50 +377,84 @@
   });
 
   // ---------- Logica ----------
+  const shipX = () => Math.cos(theta) * R;
+  const shipY = () => Math.sin(theta) * R;
+
   function spawnRock() {
     const r = rocks.find(o => !o.active);
     if (!r) return;
-    const size = Math.random() < 0.15 ? 2.2 + Math.random() * 1.6 : 0.6 + Math.random() * 1.3;
-    let x, y;
-    if (Math.random() < 0.32) { x = px + (Math.random() - 0.5) * 2.4; y = py + (Math.random() - 0.5) * 2.4; }
-    else { x = (Math.random() - 0.5) * 24; y = (Math.random() - 0.5) * 16; }
-    Object.assign(r, { active: true, r: size, z: SPAWN_Z, x, y, passed: false });
+    const size = Math.random() < 0.13 ? 2.1 + Math.random() * 1.1 : 0.6 + Math.random() * 1.2;
+    let ang, rad;
+    if (Math.random() < 0.4) { ang = theta + (Math.random() - 0.5) * 0.8; rad = R + (Math.random() - 0.5) * 1.2; }
+    else { ang = Math.random() * Math.PI * 2; rad = R + (Math.random() - 0.5) * 3; }
+    if (Math.random() < 0.12) rad = Math.random() * 2;
+    Object.assign(r, { active: true, r: size, z: SPAWN_Z, x: Math.cos(ang) * rad, y: Math.sin(ang) * rad, passed: false, hitT: 0, hp: size > 2 ? 3 : size > 1.3 ? 2 : 1 });
     r.spin.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
     r.mesh.scale.setScalar(size);
-    r.mesh.position.set(x, y, SPAWN_Z);
+    r.mesh.position.set(r.x, r.y, SPAWN_Z);
     r.mesh.visible = true;
   }
   function spawnCrystal() {
     const c = crystals.find(o => !o.active);
     if (!c) return;
-    Object.assign(c, { active: true, z: SPAWN_Z, x: (Math.random() - 0.5) * BX * 1.8, y: (Math.random() - 0.5) * BY * 1.8, passed: false });
+    const ang = Math.random() * Math.PI * 2;
+    Object.assign(c, { active: true, z: SPAWN_Z, x: Math.cos(ang) * R, y: Math.sin(ang) * R, passed: false });
     c.mesh.position.set(c.x, c.y, SPAWN_Z);
     c.mesh.visible = true;
   }
+  function removeRock(r) { r.active = false; r.mesh.visible = false; }
   function clearField() {
-    rocks.forEach(r => { r.active = false; r.mesh.visible = false; });
+    rocks.forEach(removeRock);
     crystals.forEach(c => { c.active = false; c.mesh.visible = false; });
+    lasers.forEach(l => { l.active = false; l.mesh.visible = false; });
   }
   function startGame() {
     clearField();
-    score = 0; speed = BASE_SPEED; shield = 100; energy = 100; elapsed = 0; nearCount = 0;
-    px = py = vx = vy = aimX = aimY = 0; invuln = 1.5; spawnAcc = 0; crystalAcc = 0;
+    score = 0; speed = BASE_SPEED; shield = 100; energy = 100; heat = 0; overheated = false;
+    elapsed = 0; nearCount = 0; kills = 0; invuln = 1.5; omega = 0; theta = -Math.PI / 2;
+    spawnAcc = 0; crystalAcc = 0; fireCd = 0;
+    ship.visible = true;
     $('menu').hidden = true; $('over').hidden = true;
     state = 'playing';
     audio(); startEngine();
   }
+  function fire() {
+    const l = lasers.find(o => !o.active);
+    if (!l) return;
+    gunSide = -gunSide;
+    const tx = -Math.sin(theta), ty = Math.cos(theta);   // direzione tangente all'anello
+    l.active = true;
+    l.x = shipX() + tx * 0.95 * gunSide; l.y = shipY() + ty * 0.95 * gunSide; l.z = -0.6;
+    l.mesh.position.set(l.x, l.y, l.z); l.mesh.visible = true;
+    heat += HEAT_PER_SHOT;
+    if (heat >= 100) { heat = 100; overheated = true; toast('Laser surriscaldato!', 'bad'); tone(300, 120, 0.3, 0.05, 'square'); }
+    tone(1500, 380, 0.09, 0.035, 'square');
+  }
+  function damageRock(r) {
+    r.hp -= 1; r.hitT = 0.12;
+    if (r.hp > 0) { tone(500, 260, 0.06, 0.04, 'triangle'); return; }
+    const pts = Math.round(r.r * 15) * (boosting ? 2 : 1);
+    score += pts; kills++;
+    explode(r.x, r.y, r.z, r.r);
+    noise(0.5 + r.r * 0.15, 1600, 90, 'lowpass', 0.25 + r.r * 0.08);
+    if (r.r > 2) { toast('Asteroide gigante! +' + pts, 'good'); shake = Math.max(shake, 0.25); }
+    removeRock(r);
+  }
   function hit(r) {
     if (invuln > 0) return;
     shield -= 34; invuln = 1;
-    shake = 0.9; flash('rgba(255, 60, 70, 0.55)', 0.8);
+    shake = 0.9; flash('rgba(255, 60, 70, 0.5)', 0.8);
     noise(0.6, 900, 80, 'lowpass', 0.5);
-    r.active = false; r.mesh.visible = false;
+    explode(r.x, r.y, 0, r.r * 0.7, 0xc9b9a6);
+    removeRock(r);
     if (shield <= 0) { shield = 0; crash(); }
     else toast('Urto! Scudo ' + Math.round(shield) + '%', 'bad');
   }
   function crash() {
     state = 'dead'; deadT = 0; shake = 1.6;
     flash('rgba(255, 240, 220, 0.95)', 1);
+    explode(shipX(), shipY(), 0, 3, 0xff8a3d);
+    ship.visible = false;
     noise(1.4, 1200, 40, 'lowpass', 0.7);
     if (score > best) { best = Math.floor(score); try { localStorage.setItem('astroFuga.best', String(best)); } catch (e) {} }
   }
@@ -364,36 +462,41 @@
     state = 'over';
     $('finalScore').textContent = Math.floor(score);
     $('finalBest').textContent = best;
+    $('finalKills').textContent = kills;
     $('finalNear').textContent = nearCount;
-    $('overMsg').textContent = Math.floor(score) >= best && score > 0 ? 'Nuovo record!' : 'Sfiorare gli asteroidi vale punti: rischia di più.';
+    $('overMsg').textContent = Math.floor(score) >= best && score > 0 ? 'Nuovo record!' : 'Usa tutto l\'anello: a volte la via di fuga è dall\'altra parte.';
     $('over').hidden = false;
     setTimeout(() => $('again').focus(), 50);
   }
 
   function update(dt) {
     const playing = state === 'playing';
-    // Comandi
+
+    // Rotazione lungo la circonferenza
     if (playing) {
       const kx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
-      const ky = (keys.ArrowUp || keys.KeyW ? 1 : 0) - (keys.ArrowDown || keys.KeyS ? 1 : 0);
-      if (kx || ky) { aimX = Math.max(-1, Math.min(1, aimX + kx * dt * 2.2)); aimY = Math.max(-1, Math.min(1, aimY + ky * dt * 2.2)); }
-      const wantBoost = (keys.Space || keys.ShiftLeft || touchBoost) && energy > 0;
-      boosting = wantBoost;
+      const steer = kx || touchSteer || mouseSteer;
+      omega += (steer * TURN - omega) * Math.min(1, dt * 9);
+      boosting = (keys.ShiftLeft || keys.ShiftRight || touchBoost) && energy > 0;
       energy = boosting ? Math.max(0, energy - dt * 22) : Math.min(100, energy + dt * 4);
       elapsed += dt;
-      speed = Math.min(MAX_SPEED, BASE_SPEED + elapsed * 1.3);
-    } else boosting = false;
+      speed = Math.min(MAX_SPEED, BASE_SPEED + elapsed * 1.2);
 
-    const tx = aimX * BX, ty = aimY * BY;
-    const ax = (tx - px) * 18 - vx * 7, ay = (ty - py) * 18 - vy * 7;
-    vx += ax * dt; vy += ay * dt;
-    px += vx * dt; py += vy * dt;
-    px = Math.max(-BX, Math.min(BX, px)); py = Math.max(-BY, Math.min(BY, py));
+      // Laser
+      fireCd -= dt;
+      heat = Math.max(0, heat - dt * 26);
+      if (overheated && heat < 35) overheated = false;
+      if ((keys.Space || keys.KeyJ || mouseFire || touchFire) && fireCd <= 0 && !overheated) { fire(); fireCd = FIRE_EVERY; }
+    } else {
+      boosting = false;
+      omega += ((state === 'menu' ? 0.35 : 0) - omega) * Math.min(1, dt * 3);
+    }
+    theta += omega * dt;
 
-    const sp = state === 'menu' ? 30 : state === 'dead' || state === 'over' ? speed * Math.max(0, 1 - deadT * 1.5) : speed * (boosting ? 1.55 : 1);
+    const sp = state === 'menu' ? 30 : state === 'playing' ? speed * (boosting ? 1.55 : 1) : speed * Math.max(0, 1 - deadT * 1.5);
     const move = sp * dt;
 
-    // Stelle
+    // Stelle e tunnel
     const len = 0.4 + sp * 0.05;
     for (let i = 0; i < STARS; i++) {
       const s = starData[i];
@@ -404,40 +507,63 @@
       starPos[k + 3] = s.x; starPos[k + 4] = s.y; starPos[k + 5] = s.z - len;
     }
     starGeo.attributes.position.needsUpdate = true;
+    for (const t of tunnel) { t.position.z += move; if (t.position.z > 6) t.position.z -= 240; }
 
-    // Generazione campo
+    // Generazione
     if (playing) {
       spawnAcc += move;
-      const gap = Math.max(2.2, 7 - elapsed * 0.05);
+      const gap = Math.max(2.4, 6.5 - elapsed * 0.045);
       while (spawnAcc > gap) { spawnAcc -= gap; spawnRock(); }
       crystalAcc += move;
-      if (crystalAcc > 160) { crystalAcc = 0; spawnCrystal(); }
+      if (crystalAcc > 170) { crystalAcc = 0; spawnCrystal(); }
     } else if (state === 'menu') {
       spawnAcc += move;
       while (spawnAcc > 6) { spawnAcc -= 6; spawnRock(); }
     }
 
-    // Asteroidi: il controllo avviene quando attraversano il piano della navetta
+    const sx = shipX(), sy = shipY();
+
+    // Asteroidi: urto o sfiorata quando attraversano il piano della navetta
     for (const r of rocks) {
       if (!r.active) continue;
       const prev = r.z;
       r.z += move;
+      r.hitT = Math.max(0, r.hitT - dt);
       r.mesh.position.set(r.x, r.y, r.z);
+      r.mesh.scale.setScalar(r.r * (r.hitT > 0 ? 1.12 : 1));
       r.mesh.rotation.x += r.spin.x * dt; r.mesh.rotation.y += r.spin.y * dt; r.mesh.rotation.z += r.spin.z * dt;
       if (playing && prev < 0 && r.z >= 0 && !r.passed) {
         r.passed = true;
-        const d = Math.hypot(r.x - px, r.y - py);
-        if (d < r.r * 0.85 + 0.45) hit(r);
+        const d = Math.hypot(r.x - sx, r.y - sy);
+        if (d < r.r * 0.85 + 0.5) hit(r);
         else if (d < r.r + 1.7) {
           nearCount++; score += 50 * (boosting ? 2 : 1);
           shake = Math.max(shake, 0.35);
-          flash('rgba(255, 200, 120, 0.22)', 0.3);
+          flash('rgba(255, 200, 120, 0.2)', 0.3);
           toast('Sfiorato! +' + 50 * (boosting ? 2 : 1));
           noise(0.45, 3000, 250, 'bandpass', 0.35);
         }
       }
-      if (r.z > 8) { r.active = false; r.mesh.visible = false; }
+      if (r.z > 8) removeRock(r);
     }
+
+    // Laser contro asteroidi
+    for (const l of lasers) {
+      if (!l.active) continue;
+      const prevZ = l.z;
+      l.z -= LASER_SPEED * dt;
+      l.mesh.position.set(l.x, l.y, l.z);
+      for (const r of rocks) {
+        if (!r.active) continue;
+        if (r.z > l.z - r.r && r.z < prevZ + r.r + move && Math.hypot(l.x - r.x, l.y - r.y) < r.r * 0.9 + 0.2) {
+          damageRock(r);
+          l.active = false; l.mesh.visible = false;
+          break;
+        }
+      }
+      if (l.active && l.z < SPAWN_Z) { l.active = false; l.mesh.visible = false; }
+    }
+
     for (const c of crystals) {
       if (!c.active) continue;
       const prev = c.z;
@@ -446,7 +572,7 @@
       c.mesh.rotation.y += dt * 2.5; c.mesh.children[1].rotation.x += dt * 1.5;
       if (playing && prev < 0 && c.z >= 0 && !c.passed) {
         c.passed = true;
-        if (Math.hypot(c.x - px, c.y - py) < 1.4) {
+        if (Math.hypot(c.x - sx, c.y - sy) < 1.5) {
           shield = Math.min(100, shield + 20); energy = Math.min(100, energy + 35); score += 100;
           toast('Cristallo! Scudo +20', 'good');
           flash('rgba(94, 242, 255, 0.25)', 0.35);
@@ -457,17 +583,38 @@
       if (c.z > 8) { c.active = false; c.mesh.visible = false; }
     }
 
+    // Esplosioni
+    for (const b of booms) {
+      if (!b.active) continue;
+      b.t += dt;
+      for (let i = 0; i < PARTS; i++) {
+        const k = i * 3;
+        b.pos[k] += b.vel[k] * dt; b.pos[k + 1] += b.vel[k + 1] * dt; b.pos[k + 2] += b.vel[k + 2] * dt + move;
+      }
+      b.pts.geometry.attributes.position.needsUpdate = true;
+      b.pts.material.opacity = Math.max(0, 1 - b.t / b.life);
+      if (b.t > b.life) { b.active = false; b.pts.visible = false; }
+    }
+
     if (playing) {
       score += sp * dt * 0.5 * (boosting ? 2 : 1);
       invuln = Math.max(0, invuln - dt);
+      ship.visible = invuln <= 0 || Math.floor(invuln * 12) % 2 === 0;
     }
-    if (state === 'dead') { deadT += dt; if (deadT > 1.3) gameOver(); }
+    if (state === 'dead') { deadT += dt; if (deadT > 1.4) gameOver(); }
 
-    // Camera della cabina
+    // Navetta sull'anello: la pancia verso l'esterno, inclinata quando gira
+    ship.position.set(sx, sy, 0);
+    ship.rotation.set(0, 0, theta + Math.PI / 2 - omega * 0.14);
+    ship.userData.glow.scale.setScalar((boosting ? 1.6 : 1) * (0.9 + Math.random() * 0.2));
+
+    // Camera dietro la navetta: ruota con lei, così la navetta resta in basso sullo schermo
+    const dx = Math.cos(theta), dy = Math.sin(theta);
     const s = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : shake;
-    camera.position.set(px + (Math.random() - 0.5) * s * 0.5, py + (Math.random() - 0.5) * s * 0.4, 0);
-    camera.rotation.set(vy * 0.012 + (Math.random() - 0.5) * s * 0.02, -vx * 0.01, -vx * 0.035 + (Math.random() - 0.5) * s * 0.03);
-    const fov = (camera.aspect < 1 ? 92 : 75) + (boosting ? 14 : 0) + (sp / MAX_SPEED) * 6;
+    camera.up.set(-dx, -dy, 0);
+    camera.position.set(dx * R * 0.3 + (Math.random() - 0.5) * s * 0.5, dy * R * 0.3 + (Math.random() - 0.5) * s * 0.5, 7);
+    camera.lookAt(dx * R * 0.5, dy * R * 0.5, -24);
+    const fov = (camera.aspect < 1 ? 88 : 70) + (boosting ? 12 : 0) + (sp / MAX_SPEED) * 6;
     camera.fov += (fov - camera.fov) * Math.min(1, dt * 4);
     camera.updateProjectionMatrix();
     shake = Math.max(0, shake - dt * 1.8);
@@ -483,31 +630,51 @@
     ui.shield.style.transform = 'scaleX(' + (shield / 100).toFixed(3) + ')';
     ui.shield.classList.toggle('low', shield < 35);
     ui.energy.style.transform = 'scaleX(' + (energy / 100).toFixed(3) + ')';
+    ui.heat.style.transform = 'scaleX(' + (heat / 100).toFixed(3) + ')';
+    ui.heat.classList.toggle('hot', overheated || heat > 75);
     engineLevel(playing);
   }
 
   // ---------- Input ----------
   window.addEventListener('keydown', e => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && e.target.tagName !== 'BUTTON') e.preventDefault();
+    const onButton = e.target.tagName === 'BUTTON';
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && !onButton) e.preventDefault();
+    if ((e.code === 'Enter' || e.code === 'Space') && (state === 'menu' || state === 'over') && !onButton) { startGame(); return; }
     keys[e.code] = true;
-    if ((e.code === 'Enter' || e.code === 'Space') && (state === 'menu' || state === 'over') && e.target.tagName !== 'BUTTON') startGame();
   });
   window.addEventListener('keyup', e => { keys[e.code] = false; });
-  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseFire = touchFire = touchBoost = false; touchSteer = 0; });
+
+  const outsideUI = e => !e.target.closest('.card, button');
+  let dragX = null;
   app.addEventListener('pointermove', e => {
-    if (e.target.closest('.card, button')) return;
-    if (e.pointerType === 'mouse' || e.buttons) {
+    if (e.pointerType === 'mouse') {
       const rect = app.getBoundingClientRect();
-      aimX = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width - 0.5) * 2.4));
-      aimY = Math.max(-1, Math.min(1, -((e.clientY - rect.top) / rect.height - 0.5) * 2.4));
+      const v = ((e.clientX - rect.left) / rect.width - 0.5) * 2.6;
+      mouseSteer = Math.abs(v) < 0.08 ? 0 : Math.max(-1, Math.min(1, v));
+    } else if (dragX !== null) {
+      touchSteer = Math.max(-1, Math.min(1, (e.clientX - dragX) / 70));
     }
   });
-  let touchBoost = false;
-  const boostBtn = $('boostBtn');
-  const setBoost = on => { touchBoost = on; boostBtn.classList.toggle('on', on); };
-  boostBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); boostBtn.setPointerCapture(e.pointerId); setBoost(true); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => boostBtn.addEventListener(t, () => setBoost(false)));
-  boostBtn.addEventListener('pointermove', e => e.stopPropagation());
+  app.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { mouseSteer = 0; mouseFire = false; } });
+  app.addEventListener('pointerdown', e => {
+    if (!outsideUI(e)) return;
+    if (e.pointerType === 'mouse') { if (e.button === 0 && state === 'playing') mouseFire = true; }
+    else dragX = e.clientX;
+  });
+  window.addEventListener('pointerup', e => {
+    if (e.pointerType === 'mouse') mouseFire = false;
+    else if (!e.target.closest('.touch')) { dragX = null; touchSteer = 0; }
+  });
+  window.addEventListener('pointercancel', () => { dragX = null; touchSteer = 0; });
+
+  function holdButton(btn, set) {
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); btn.setPointerCapture(e.pointerId); set(true); btn.classList.add('on'); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => btn.addEventListener(t, () => { set(false); btn.classList.remove('on'); }));
+    btn.addEventListener('pointermove', e => e.stopPropagation());
+  }
+  holdButton($('fireBtn'), v => { touchFire = v; });
+  holdButton($('boostBtn'), v => { touchBoost = v; });
   $('play').addEventListener('click', startGame);
   $('again').addEventListener('click', startGame);
 
