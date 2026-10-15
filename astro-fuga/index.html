@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05070d">
+<title>Astro Fuga</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: vista dalla cabina a tutto schermo, strumenti agli angoli, mirino al centro */
+  :root {
+    --void: #05070d;
+    --glass: rgba(10, 18, 34, 0.72);
+    --cyan: #5ef2ff;
+    --amber: #ffb547;
+    --red: #ff4d5e;
+    --ink: #e6efff;
+    --muted: #8fa3c4;
+    --display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--void); color: var(--ink); font-family: var(--mono); overflow: hidden; }
+  #app { position: relative; height: 100%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+  #app canvas { display: block; }
+
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 2; pointer-events: none;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    padding-block: 14px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .group { display: grid; gap: 8px; min-width: 0; }
+  .group.right { justify-items: end; text-align: right; }
+  .stat { display: grid; line-height: 1.05; }
+  .lbl { font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .val { font-family: var(--display); font-weight: 700; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  #score { color: var(--cyan); }
+  #speed.boost { color: var(--amber); }
+  .bar { width: min(34vw, 180px); height: 7px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .bar > div { height: 100%; transform-origin: left; }
+  #shieldBar { background: var(--cyan); }
+  #shieldBar.low { background: var(--red); }
+  #energyBar { background: var(--amber); }
+  .mute {
+    pointer-events: auto; font: 600 0.72rem var(--mono); letter-spacing: 0.06em; color: var(--ink);
+    background: var(--glass); border: 1px solid rgba(94, 242, 255, 0.35); border-radius: 4px; padding: 6px 10px; cursor: pointer;
+  }
+  .mute:focus-visible, .btn:focus-visible, #boostBtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* Cabina: angoli del vetro e mirino */
+  .frame { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(0,0,0,0.6) 100%); }
+  .reticle { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; transform: translate(-50%, -50%); z-index: 1; pointer-events: none; }
+  .reticle::before, .reticle::after { content: ""; position: absolute; background: rgba(94, 242, 255, 0.7); }
+  .reticle::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); -webkit-mask: linear-gradient(#000 35%, transparent 35% 65%, #000 65%); mask: linear-gradient(#000 35%, transparent 35% 65%, #000 65%); }
+  .reticle::after { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); -webkit-mask: linear-gradient(90deg, #000 35%, transparent 35% 65%, #000 65%); mask: linear-gradient(90deg, #000 35%, transparent 35% 65%, #000 65%); }
+  #flash { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; }
+
+  .toast {
+    position: absolute; left: 0; right: 0; top: 34%; z-index: 2; text-align: center; pointer-events: none;
+    font-family: var(--display); font-weight: 700; font-size: clamp(1.4rem, 5vw, 2.2rem); letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--amber); text-shadow: 0 0 18px rgba(255, 181, 71, 0.55);
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .toast.show { opacity: 1; }
+  .toast.bad { color: var(--red); text-shadow: 0 0 18px rgba(255, 77, 94, 0.6); }
+  .toast.good { color: var(--cyan); text-shadow: 0 0 18px rgba(94, 242, 255, 0.55); }
+
+  .overlay {
+    position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; cursor: default;
+    padding-block: 24px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: rgba(3, 5, 10, 0.5);
+  }
+  .card {
+    width: 100%; max-width: 440px; display: grid; gap: 14px;
+    background: var(--glass); border: 1px solid rgba(94, 242, 255, 0.3); border-radius: 6px;
+    padding: 26px 24px 24px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .card h1, .card h2 { margin: 0; font-family: var(--display); font-weight: 700; line-height: 0.95; text-transform: uppercase; letter-spacing: 0.04em; text-wrap: balance; }
+  .card h1 { font-size: clamp(2.6rem, 12vw, 3.8rem); color: var(--ink); }
+  .card h1 span { color: var(--cyan); }
+  .card h2 { font-size: 2.1rem; color: var(--red); }
+  .card p { margin: 0; line-height: 1.55; font-size: 0.9rem; }
+  .card .hint { color: var(--muted); font-size: 0.8rem; }
+  .rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 0.84rem; }
+  .rules li { display: grid; grid-template-columns: 6.2rem 1fr; gap: 10px; }
+  .rules b { color: var(--amber); font-weight: 600; }
+  kbd { font: 600 0.74rem var(--mono); padding: 1px 6px; border-radius: 3px; border: 1px solid rgba(94, 242, 255, 0.35); }
+  .final { display: flex; flex-wrap: wrap; gap: 26px; }
+  .btn {
+    justify-self: start; font: 700 1.15rem var(--display); letter-spacing: 0.1em; text-transform: uppercase;
+    color: #041218; background: var(--cyan); border: 0; border-radius: 4px; padding: 12px 26px; cursor: pointer;
+  }
+  .btn:active { transform: translateY(2px); }
+
+  #boostBtn {
+    position: absolute; z-index: 2; display: none;
+    right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    width: 84px; height: 84px; border-radius: 50%;
+    font: 700 0.85rem var(--display); letter-spacing: 0.1em; color: var(--amber);
+    background: var(--glass); border: 2px solid var(--amber); cursor: pointer;
+  }
+  #boostBtn.on { background: rgba(255, 181, 71, 0.3); }
+  @media (pointer: coarse) { #boostBtn { display: block; } }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="frame"></div>
+  <div class="reticle"></div>
+  <div id="flash"></div>
+
+  <header class="hud">
+    <div class="group">
+      <div class="stat"><span class="lbl">Punti</span><span id="score" class="val">0</span></div>
+      <div class="stat"><span class="lbl">Record</span><span id="best" class="val" style="font-size:1.05rem">0</span></div>
+      <div class="stat"><span class="lbl">Scudo</span><div class="bar"><div id="shieldBar"></div></div></div>
+    </div>
+    <div class="group right">
+      <div class="stat"><span class="lbl">Velocità km/s</span><span id="speed" class="val">0.0</span></div>
+      <div class="stat"><span class="lbl">Turbo</span><div class="bar"><div id="energyBar"></div></div></div>
+      <button id="mute" class="mute" type="button" aria-pressed="false">Suono: sì</button>
+    </div>
+  </header>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <section id="menu" class="overlay">
+    <div class="card">
+      <h1>Astro <span>Fuga</span></h1>
+      <p>Sei ai comandi di una navetta lanciata dentro una fascia di asteroidi. Più vai avanti, più si va veloci.</p>
+      <ul class="rules">
+        <li><b>Asteroidi</b><span>Ogni urto toglie un terzo dello scudo.</span></li>
+        <li><b>Sfiorati</b><span>Passa vicino a un asteroide senza toccarlo: +50 punti.</span></li>
+        <li><b>Cristalli</b><span>Ricaricano scudo e turbo.</span></li>
+        <li><b>Turbo</b><span>Più velocità, punti doppi.</span></li>
+      </ul>
+      <p class="hint">Sterza con il mouse, le frecce o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>. Tieni premuto <kbd>Spazio</kbd> per il turbo. Sul telefono trascina il dito e tieni premuto TURBO.</p>
+      <button id="play" class="btn" type="button">Decolla</button>
+    </div>
+  </section>
+
+  <section id="over" class="overlay" hidden>
+    <div class="card">
+      <h2>Navetta distrutta</h2>
+      <div class="final">
+        <div class="stat"><span class="lbl">Punti</span><span id="finalScore" class="val">0</span></div>
+        <div class="stat"><span class="lbl">Record</span><span id="finalBest" class="val">0</span></div>
+        <div class="stat"><span class="lbl">Sfiorati</span><span id="finalNear" class="val">0</span></div>
+      </div>
+      <p id="overMsg" class="hint"></p>
+      <button id="again" class="btn" type="button">Riparti</button>
+    </div>
+  </section>
+
+  <button id="boostBtn" type="button" aria-label="Turbo">TURBO</button>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+(() => {
+  // ---------- Configurazione ----------
+  const BX = 7, BY = 4.2;          // limiti di movimento della navetta
+  const SPAWN_Z = -220;
+  const BASE_SPEED = 38, MAX_SPEED = 135;
+
+  // ---------- Scena ----------
+  const app = document.getElementById('app');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  app.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05070d);
+  scene.fog = new THREE.Fog(0x05070d, 70, 210);
+  const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1200);
+  camera.rotation.order = 'YXZ';
+
+  scene.add(new THREE.AmbientLight(0x334466, 0.7));
+  const sun = new THREE.DirectionalLight(0xffd7a8, 1.2); sun.position.set(6, 5, 3); scene.add(sun);
+  const rim = new THREE.DirectionalLight(0x6688ff, 0.5); rim.position.set(-6, -3, -4); scene.add(rim);
+
+  // Pianeta lontano
+  const planet = new THREE.Mesh(new THREE.SphereGeometry(70, 40, 30), new THREE.MeshStandardMaterial({ color: 0x7a4bb0, roughness: 1, fog: false }));
+  planet.position.set(-150, 55, -620); scene.add(planet);
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(12, 24, 18), new THREE.MeshStandardMaterial({ color: 0xc9b9a6, roughness: 1, fog: false }));
+  moon.position.set(140, -30, -560); scene.add(moon);
+
+  // Stelle a strisce
+  const STARS = 700;
+  const starPos = new Float32Array(STARS * 6);
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const stars = new THREE.LineSegments(starGeo, new THREE.LineBasicMaterial({ color: 0xbcd4ff, transparent: true, opacity: 0.85, fog: false }));
+  scene.add(stars);
+  const starData = [];
+  function placeStar(s, z) {
+    let x, y;
+    do { x = (Math.random() - 0.5) * 120; y = (Math.random() - 0.5) * 80; } while (Math.abs(x) < 3 && Math.abs(y) < 3);
+    s.x = x; s.y = y; s.z = z;
+  }
+  for (let i = 0; i < STARS; i++) { const s = {}; placeStar(s, -Math.random() * 320); starData.push(s); }
+
+  // Asteroidi: geometrie bitorzolute deterministiche (nessuna crepa tra le facce)
+  function rockGeo(seed) {
+    const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, v = new THREE.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i);
+      const n = 1 + Math.sin(v.x * 3.1 + seed) * Math.cos(v.y * 2.7 + seed * 2) * 0.2 + Math.sin(v.z * 4.3 + seed * 3) * 0.1;
+      v.multiplyScalar(n); p.setXYZ(i, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals();
+    return g;
+  }
+  const rockGeos = [1.3, 2.9, 4.4, 6.1].map(rockGeo);
+  const rockMats = [0x8a7f74, 0x6f6660, 0x9a8a78, 0x5f646e].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95, flatShading: true }));
+  const rocks = [];
+  for (let i = 0; i < 90; i++) {
+    const m = new THREE.Mesh(rockGeos[i % 4], rockMats[(i * 7) % 4]);
+    m.visible = false; scene.add(m);
+    rocks.push({ mesh: m, active: false, r: 1, z: 0, spin: new THREE.Vector3() });
+  }
+
+  // Cristalli
+  const crystals = [];
+  const crystalMat = new THREE.MeshBasicMaterial({ color: 0x5ef2ff });
+  const haloMat = new THREE.MeshBasicMaterial({ color: 0x5ef2ff, wireframe: true, transparent: true, opacity: 0.35 });
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.45), crystalMat));
+    const halo = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), haloMat); g.add(halo);
+    g.visible = false; scene.add(g);
+    crystals.push({ mesh: g, active: false, z: 0 });
+  }
+
+  // ---------- Stato ----------
+  const $ = id => document.getElementById(id);
+  const ui = { score: $('score'), best: $('best'), speed: $('speed'), shield: $('shieldBar'), energy: $('energyBar'), toast: $('toast') };
+  let best = 0;
+  try { best = +localStorage.getItem('astroFuga.best') || 0; } catch (e) {}
+
+  let state = 'menu', score = 0, speed = BASE_SPEED, shield = 100, energy = 100, elapsed = 0, nearCount = 0;
+  let px = 0, py = 0, vx = 0, vy = 0, aimX = 0, aimY = 0, invuln = 0, boosting = false;
+  let spawnAcc = 0, crystalAcc = 0, shake = 0, flashA = 0, deadT = 0;
+  const keys = {};
+
+  let toastTimer = 0;
+  function toast(text, tone = '') {
+    ui.toast.textContent = text;
+    ui.toast.className = 'toast show ' + tone;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 700);
+  }
+  const flashEl = $('flash');
+  function flash(color, a) { flashEl.style.background = color; flashA = a; }
+
+  // ---------- Audio ----------
+  let actx = null, muted = false, engine = null, noiseBuf = null;
+  function audio() {
+    if (actx) return actx;
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    } catch (e) { actx = null; }
+    return actx;
+  }
+  function noise(dur, f1, f2, type, vol) {
+    if (muted || !audio()) return;
+    const t = actx.currentTime, src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = noiseBuf; f.type = type;
+    f.frequency.setValueAtTime(f1, t); f.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(actx.destination);
+    src.start(t); src.stop(t + dur + 0.05);
+  }
+  function tone(f1, f2, dur, vol = 0.05, type = 'sine') {
+    if (muted || !audio()) return;
+    const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function startEngine() {
+    if (!audio() || engine) return;
+    const o = actx.createOscillator(), f = actx.createBiquadFilter(), g = actx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = 50; f.type = 'lowpass'; f.frequency.value = 380; g.gain.value = 0;
+    o.connect(f); f.connect(g); g.connect(actx.destination); o.start();
+    engine = { o, f, g };
+  }
+  function engineLevel(on) {
+    if (!engine) return;
+    const t = actx.currentTime;
+    engine.g.gain.setTargetAtTime(on && !muted ? 0.035 : 0, t, 0.1);
+    engine.o.frequency.setTargetAtTime(38 + speed * 0.45 * (boosting ? 1.25 : 1), t, 0.2);
+    engine.f.frequency.setTargetAtTime(260 + speed * 4, t, 0.2);
+  }
+  $('mute').addEventListener('click', () => {
+    muted = !muted;
+    $('mute').textContent = muted ? 'Suono: no' : 'Suono: sì';
+    $('mute').setAttribute('aria-pressed', String(muted));
+  });
+
+  // ---------- Logica ----------
+  function spawnRock() {
+    const r = rocks.find(o => !o.active);
+    if (!r) return;
+    const size = Math.random() < 0.15 ? 2.2 + Math.random() * 1.6 : 0.6 + Math.random() * 1.3;
+    let x, y;
+    if (Math.random() < 0.32) { x = px + (Math.random() - 0.5) * 2.4; y = py + (Math.random() - 0.5) * 2.4; }
+    else { x = (Math.random() - 0.5) * 24; y = (Math.random() - 0.5) * 16; }
+    Object.assign(r, { active: true, r: size, z: SPAWN_Z, x, y, passed: false });
+    r.spin.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+    r.mesh.scale.setScalar(size);
+    r.mesh.position.set(x, y, SPAWN_Z);
+    r.mesh.visible = true;
+  }
+  function spawnCrystal() {
+    const c = crystals.find(o => !o.active);
+    if (!c) return;
+    Object.assign(c, { active: true, z: SPAWN_Z, x: (Math.random() - 0.5) * BX * 1.8, y: (Math.random() - 0.5) * BY * 1.8, passed: false });
+    c.mesh.position.set(c.x, c.y, SPAWN_Z);
+    c.mesh.visible = true;
+  }
+  function clearField() {
+    rocks.forEach(r => { r.active = false; r.mesh.visible = false; });
+    crystals.forEach(c => { c.active = false; c.mesh.visible = false; });
+  }
+  function startGame() {
+    clearField();
+    score = 0; speed = BASE_SPEED; shield = 100; energy = 100; elapsed = 0; nearCount = 0;
+    px = py = vx = vy = aimX = aimY = 0; invuln = 1.5; spawnAcc = 0; crystalAcc = 0;
+    $('menu').hidden = true; $('over').hidden = true;
+    state = 'playing';
+    audio(); startEngine();
+  }
+  function hit(r) {
+    if (invuln > 0) return;
+    shield -= 34; invuln = 1;
+    shake = 0.9; flash('rgba(255, 60, 70, 0.55)', 0.8);
+    noise(0.6, 900, 80, 'lowpass', 0.5);
+    r.active = false; r.mesh.visible = false;
+    if (shield <= 0) { shield = 0; crash(); }
+    else toast('Urto! Scudo ' + Math.round(shield) + '%', 'bad');
+  }
+  function crash() {
+    state = 'dead'; deadT = 0; shake = 1.6;
+    flash('rgba(255, 240, 220, 0.95)', 1);
+    noise(1.4, 1200, 40, 'lowpass', 0.7);
+    if (score > best) { best = Math.floor(score); try { localStorage.setItem('astroFuga.best', String(best)); } catch (e) {} }
+  }
+  function gameOver() {
+    state = 'over';
+    $('finalScore').textContent = Math.floor(score);
+    $('finalBest').textContent = best;
+    $('finalNear').textContent = nearCount;
+    $('overMsg').textContent = Math.floor(score) >= best && score > 0 ? 'Nuovo record!' : 'Sfiorare gli asteroidi vale punti: rischia di più.';
+    $('over').hidden = false;
+    setTimeout(() => $('again').focus(), 50);
+  }
+
+  function update(dt) {
+    const playing = state === 'playing';
+    // Comandi
+    if (playing) {
+      const kx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
+      const ky = (keys.ArrowUp || keys.KeyW ? 1 : 0) - (keys.ArrowDown || keys.KeyS ? 1 : 0);
+      if (kx || ky) { aimX = Math.max(-1, Math.min(1, aimX + kx * dt * 2.2)); aimY = Math.max(-1, Math.min(1, aimY + ky * dt * 2.2)); }
+      const wantBoost = (keys.Space || keys.ShiftLeft || touchBoost) && energy > 0;
+      boosting = wantBoost;
+      energy = boosting ? Math.max(0, energy - dt * 22) : Math.min(100, energy + dt * 4);
+      elapsed += dt;
+      speed = Math.min(MAX_SPEED, BASE_SPEED + elapsed * 1.3);
+    } else boosting = false;
+
+    const tx = aimX * BX, ty = aimY * BY;
+    const ax = (tx - px) * 18 - vx * 7, ay = (ty - py) * 18 - vy * 7;
+    vx += ax * dt; vy += ay * dt;
+    px += vx * dt; py += vy * dt;
+    px = Math.max(-BX, Math.min(BX, px)); py = Math.max(-BY, Math.min(BY, py));
+
+    const sp = state === 'menu' ? 30 : state === 'dead' || state === 'over' ? speed * Math.max(0, 1 - deadT * 1.5) : speed * (boosting ? 1.55 : 1);
+    const move = sp * dt;
+
+    // Stelle
+    const len = 0.4 + sp * 0.05;
+    for (let i = 0; i < STARS; i++) {
+      const s = starData[i];
+      s.z += move * 1.2;
+      if (s.z > 2) placeStar(s, -320 + (s.z - 2));
+      const k = i * 6;
+      starPos[k] = s.x; starPos[k + 1] = s.y; starPos[k + 2] = s.z;
+      starPos[k + 3] = s.x; starPos[k + 4] = s.y; starPos[k + 5] = s.z - len;
+    }
+    starGeo.attributes.position.needsUpdate = true;
+
+    // Generazione campo
+    if (playing) {
+      spawnAcc += move;
+      const gap = Math.max(2.2, 7 - elapsed * 0.05);
+      while (spawnAcc > gap) { spawnAcc -= gap; spawnRock(); }
+      crystalAcc += move;
+      if (crystalAcc > 160) { crystalAcc = 0; spawnCrystal(); }
+    } else if (state === 'menu') {
+      spawnAcc += move;
+      while (spawnAcc > 6) { spawnAcc -= 6; spawnRock(); }
+    }
+
+    // Asteroidi: il controllo avviene quando attraversano il piano della navetta
+    for (const r of rocks) {
+      if (!r.active) continue;
+      const prev = r.z;
+      r.z += move;
+      r.mesh.position.set(r.x, r.y, r.z);
+      r.mesh.rotation.x += r.spin.x * dt; r.mesh.rotation.y += r.spin.y * dt; r.mesh.rotation.z += r.spin.z * dt;
+      if (playing && prev < 0 && r.z >= 0 && !r.passed) {
+        r.passed = true;
+        const d = Math.hypot(r.x - px, r.y - py);
+        if (d < r.r * 0.85 + 0.45) hit(r);
+        else if (d < r.r + 1.7) {
+          nearCount++; score += 50 * (boosting ? 2 : 1);
+          shake = Math.max(shake, 0.35);
+          flash('rgba(255, 200, 120, 0.22)', 0.3);
+          toast('Sfiorato! +' + 50 * (boosting ? 2 : 1));
+          noise(0.45, 3000, 250, 'bandpass', 0.35);
+        }
+      }
+      if (r.z > 8) { r.active = false; r.mesh.visible = false; }
+    }
+    for (const c of crystals) {
+      if (!c.active) continue;
+      const prev = c.z;
+      c.z += move;
+      c.mesh.position.set(c.x, c.y, c.z);
+      c.mesh.rotation.y += dt * 2.5; c.mesh.children[1].rotation.x += dt * 1.5;
+      if (playing && prev < 0 && c.z >= 0 && !c.passed) {
+        c.passed = true;
+        if (Math.hypot(c.x - px, c.y - py) < 1.4) {
+          shield = Math.min(100, shield + 20); energy = Math.min(100, energy + 35); score += 100;
+          toast('Cristallo! Scudo +20', 'good');
+          flash('rgba(94, 242, 255, 0.25)', 0.35);
+          tone(880, 1760, 0.18, 0.06); tone(1320, 2200, 0.22, 0.04);
+          c.active = false; c.mesh.visible = false;
+        }
+      }
+      if (c.z > 8) { c.active = false; c.mesh.visible = false; }
+    }
+
+    if (playing) {
+      score += sp * dt * 0.5 * (boosting ? 2 : 1);
+      invuln = Math.max(0, invuln - dt);
+    }
+    if (state === 'dead') { deadT += dt; if (deadT > 1.3) gameOver(); }
+
+    // Camera della cabina
+    const s = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : shake;
+    camera.position.set(px + (Math.random() - 0.5) * s * 0.5, py + (Math.random() - 0.5) * s * 0.4, 0);
+    camera.rotation.set(vy * 0.012 + (Math.random() - 0.5) * s * 0.02, -vx * 0.01, -vx * 0.035 + (Math.random() - 0.5) * s * 0.03);
+    const fov = (camera.aspect < 1 ? 92 : 75) + (boosting ? 14 : 0) + (sp / MAX_SPEED) * 6;
+    camera.fov += (fov - camera.fov) * Math.min(1, dt * 4);
+    camera.updateProjectionMatrix();
+    shake = Math.max(0, shake - dt * 1.8);
+    flashA = Math.max(0, flashA - dt * 2);
+    flashEl.style.opacity = flashA.toFixed(3);
+    planet.rotation.y += dt * 0.01;
+
+    // Strumenti
+    ui.score.textContent = Math.floor(score);
+    ui.best.textContent = Math.max(best, Math.floor(score));
+    ui.speed.textContent = (sp / 10).toFixed(1);
+    ui.speed.classList.toggle('boost', boosting);
+    ui.shield.style.transform = 'scaleX(' + (shield / 100).toFixed(3) + ')';
+    ui.shield.classList.toggle('low', shield < 35);
+    ui.energy.style.transform = 'scaleX(' + (energy / 100).toFixed(3) + ')';
+    engineLevel(playing);
+  }
+
+  // ---------- Input ----------
+  window.addEventListener('keydown', e => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && e.target.tagName !== 'BUTTON') e.preventDefault();
+    keys[e.code] = true;
+    if ((e.code === 'Enter' || e.code === 'Space') && (state === 'menu' || state === 'over') && e.target.tagName !== 'BUTTON') startGame();
+  });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+  app.addEventListener('pointermove', e => {
+    if (e.target.closest('.card, button')) return;
+    if (e.pointerType === 'mouse' || e.buttons) {
+      const rect = app.getBoundingClientRect();
+      aimX = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width - 0.5) * 2.4));
+      aimY = Math.max(-1, Math.min(1, -((e.clientY - rect.top) / rect.height - 0.5) * 2.4));
+    }
+  });
+  let touchBoost = false;
+  const boostBtn = $('boostBtn');
+  const setBoost = on => { touchBoost = on; boostBtn.classList.toggle('on', on); };
+  boostBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); boostBtn.setPointerCapture(e.pointerId); setBoost(true); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => boostBtn.addEventListener(t, () => setBoost(false)));
+  boostBtn.addEventListener('pointermove', e => e.stopPropagation());
+  $('play').addEventListener('click', startGame);
+  $('again').addEventListener('click', startGame);
+
+  // ---------- Ciclo ----------
+  function resize() {
+    const w = app.clientWidth, h = app.clientHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  ui.best.textContent = best;
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

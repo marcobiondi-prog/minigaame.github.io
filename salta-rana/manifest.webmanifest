@@ -1,0 +1,19 @@
+{
+  "name": "Salta Rana 3D",
+  "short_name": "Salta Rana",
+  "description": "Gioco arcade 3D: attraversa strada e fiume e porta cinque rane a casa sulle ninfee.",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0d1f2a",
+  "theme_color": "#0d1f2a",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
