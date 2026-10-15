@@ -1,6 +1,6 @@
 // Service worker di Salta Rana 3D: salva il gioco per giocare anche offline.
 // Cambia VERSION quando modifichi i file, così i giocatori ricevono l'aggiornamento.
-const VERSION = 'salta-rana-v1';
+const VERSION = 'salta-rana-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -31,7 +31,19 @@ self.addEventListener('fetch', event => {
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (url.origin !== self.location.origin && !isFont) return;
 
-  // Prima la cache, poi la rete; le risposte nuove finiscono in cache (font compresi).
+  // Pagina: prima la rete (così gli aggiornamenti arrivano subito), la cache solo offline.
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(VERSION).then(cache => cache.put('./index.html', copy));
+        return res;
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Altri file: prima la cache, poi la rete; le risposte nuove finiscono in cache (font compresi).
   event.respondWith(
     caches.match(req, { ignoreSearch: true }).then(cached => {
       if (cached) return cached;
