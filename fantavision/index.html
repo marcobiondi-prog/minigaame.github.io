@@ -35,5 +35,815 @@
     cursor: crosshair; touch-action: none;
   }
   canvas { display: block; width: 100%; height: 100%; }
+
   .hud {
     position: absolute; top: 0; left: 0; right: 0; pointer-events: none;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: clamp(10px, 2.5vw, 20px);
+    z-index: 10;
+  }
+  .hud-col { display: flex; flex-direction: column; gap: 8px; }
+  .hud-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 8px;
+    padding: 8px 16px;
+    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.15);
+  }
+  .label {
+    font-family: var(--font-heading); font-size: 0.65rem;
+    letter-spacing: 2px; color: #88a3c7; text-transform: uppercase;
+  }
+  .value {
+    font-family: var(--font-heading); font-size: 1.8rem; font-weight: 700;
+    line-height: 1.1; color: #ffffff;
+    text-shadow: 0 0 12px rgba(255,255,255,0.4);
+  }
+  .val-sub { font-size: 1rem; color: #a9c5ea; margin-left: 4px; }
+  #score-display { color: var(--gold); text-shadow: 0 0 16px rgba(255,190,38,0.6); }
+  #chain-display { color: var(--cyan); text-shadow: 0 0 16px rgba(0,255,255,0.6); }
+
+  .meter-container {
+    display: flex; align-items: center; gap: 10px; margin-top: 4px;
+  }
+  .meter-bar {
+    width: clamp(100px, 25vw, 180px); height: 10px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 5px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .meter-fill {
+    height: 100%; width: 0%;
+    transition: width 0.15s ease-out;
+  }
+  #danger-bar { background: linear-gradient(90deg, #ff9900, #ff2255); }
+  #starmeter-bar { background: linear-gradient(90deg, #ff3366, #ffbe26, #00d4ff); }
+
+  .btn-icon {
+    pointer-events: auto; background: var(--glass);
+    border: 1px solid var(--glass-border);
+    color: #fff; font-family: var(--font-ui); font-size: 0.9rem;
+    font-weight: 700; padding: 8px 14px; border-radius: 6px;
+    cursor: pointer; transition: all 0.2s;
+    backdrop-filter: blur(6px);
+  }
+  .btn-icon:hover { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,255,255,0.4); }
+
+  .toast-banner {
+    position: absolute; top: 22%; left: 50%; transform: translate(-50%, -50%);
+    font-family: var(--font-heading); font-size: clamp(2rem, 6vw, 3.6rem);
+    font-weight: 900; text-align: center; text-transform: uppercase;
+    letter-spacing: 4px; pointer-events: none; opacity: 0;
+    transition: opacity 0.2s, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 15; text-shadow: 0 0 30px currentColor;
+  }
+  .toast-banner.show {
+    opacity: 1; transform: translate(-50%, -50%) scale(1.08);
+  }
+
+  .overlay {
+    position: absolute; inset: 0; z-index: 30;
+    background: radial-gradient(circle at center, rgba(3,6,18,0.85) 0%, rgba(1,2,8,0.96) 100%);
+    display: flex; justify-content: center; align-items: center;
+    padding: 20px;
+  }
+  .modal {
+    width: 100%; max-width: 520px;
+    background: var(--glass);
+    border: 1.5px solid var(--glass-border);
+    border-radius: 16px; padding: clamp(20px, 5vw, 36px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.25), inset 0 0 20px rgba(0, 212, 255, 0.05);
+    text-align: center;
+  }
+  .modal h1 {
+    font-family: var(--font-heading); font-size: clamp(2rem, 6vw, 3rem);
+    font-weight: 900; margin: 0 0 8px 0; letter-spacing: 3px;
+    background: linear-gradient(135deg, #00d4ff, #ffffff, #ff3366);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .modal h2 {
+    font-family: var(--font-heading); font-size: 2rem; color: #ff3366;
+    margin: 0 0 12px 0; text-shadow: 0 0 20px rgba(255,51,102,0.6);
+  }
+  .subtitle {
+    font-size: 1.15rem; color: #9ab4d6; margin-bottom: 24px; font-weight: 600;
+  }
+  .tutorial-box {
+    text-align: left; background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.98rem; line-height: 1.55; color: #d0e2fa;
+  }
+  .tutorial-box b { color: var(--gold); }
+  .tutorial-box span.badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-family: var(--font-heading); font-size: 0.75rem; font-weight: 700;
+    margin-right: 4px;
+  }
+  .badge-red { background: var(--red); color: #fff; }
+  .badge-blue { background: var(--blue); color: #000; }
+  .badge-green { background: var(--green); color: #000; }
+  .badge-gold { background: var(--gold); color: #000; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    margin: 20px 0 26px 0;
+  }
+  .stat-box {
+    background: rgba(0, 0, 0, 0.35); border-radius: 8px; padding: 10px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+  }
+  .btn-primary {
+    font-family: var(--font-heading); font-size: 1.25rem; font-weight: 900;
+    letter-spacing: 2px; text-transform: uppercase;
+    background: linear-gradient(135deg, #00d4ff, #0088ff);
+    color: #030816; border: none; border-radius: 8px;
+    padding: 14px 38px; cursor: pointer;
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .btn-primary:hover {
+    transform: scale(1.05); box-shadow: 0 0 35px rgba(0, 212, 255, 0.8);
+  }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .mobile-detonate-btn {
+    position: absolute; bottom: 24px; right: 24px; z-index: 20;
+    width: 86px; height: 86px; border-radius: 50%;
+    background: radial-gradient(circle, #ff3366, #b30030);
+    border: 3px solid #ff99bb; color: white;
+    font-family: var(--font-heading); font-size: 0.9rem; font-weight: 900;
+    display: none; align-items: center; justify-content: center;
+    box-shadow: 0 0 30px rgba(255, 51, 102, 0.7);
+    touch-action: manipulation; cursor: pointer;
+  }
+  @media (pointer: coarse) {
+    .mobile-detonate-btn { display: flex; }
+  }
+  .crosshair-cursor {
+    position: absolute; pointer-events: none; z-index: 5;
+    width: 36px; height: 36px; transform: translate(-50%, -50%);
+    border: 2px dashed rgba(0, 212, 255, 0.6); border-radius: 50%;
+    transition: width 0.1s, height 0.1s;
+  }
+  .crosshair-cursor.locked {
+    border: 2px solid #ff3366; width: 44px; height: 44px;
+    box-shadow: 0 0 15px #ff3366;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <div id="crosshair" class="crosshair-cursor"></div>
+
+  <header class="hud">
+    <div class="hud-col">
+      <div class="hud-card">
+        <div class="label">Punteggio</div>
+        <div class="value" id="score-display">0</div>
+      </div>
+      <div class="hud-card">
+        <div class="label">Combo Catena</div>
+        <div class="value" id="chain-display">0<span class="val-sub">CATCH</span></div>
+      </div>
+      <div class="hud-card">
+        <div class="label">Livello & Tempo</div>
+        <div class="value" id="stage-display">STAGE 1 <span class="val-sub" id="timer-display">60s</span></div>
+      </div>
+    </div>
+
+    <div class="hud-col" style="align-items: flex-end;">
+      <button id="audio-toggle" class="btn-icon" type="button">AUDIO: ON</button>
+      <div class="hud-card" style="align-items: flex-end; text-align: right;">
+        <div class="label">Danger / Miss Limit</div>
+        <div class="meter-container">
+          <div class="meter-bar"><div id="danger-bar" class="meter-fill"></div></div>
+        </div>
+      </div>
+      <div class="hud-card" style="align-items: flex-end; text-align: right;">
+        <div class="label">Star Meter (Special)</div>
+        <div class="meter-container">
+          <div class="meter-bar"><div id="starmeter-bar" class="meter-fill"></div></div>
+        </div>
+      </div>
+      <div class="hud-card" style="text-align: right;">
+        <div class="label">Miglior Punteggio</div>
+        <div class="value" id="hi-display" style="font-size: 1.3rem;">0</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="toast" class="toast-banner">CHAIN EXPLOSION!</div>
+  <div id="mobile-detonate" class="mobile-detonate-btn">BOOM!</div>
+
+  <section id="menu-overlay" class="overlay">
+    <div class="modal">
+      <h1>FANTAVISION</h1>
+      <div class="subtitle">Fireworks Puzzle & Chain Reaction</div>
+      <div class="tutorial-box">
+        <p>🎆 <b>CATTURA (CATCH):</b> Clicca o tocca i fuochi d'artificio dello stesso colore per collegarli con il raggio laser in una catena (minimo 2 razzi).</p>
+        <p>💥 <b>DETONA (BOOM):</b> Premi <kbd>SPAZIO</kbd>, clicca col <b>tasto destro</b>, o tocca il pulsante <b>BOOM</b> per far esplodere la catena!</p>
+        <p>⭐ <b>COLOR CHANGE:</b> I fuochi <span class="badge badge-gold">WILD</span> o <span class="badge" style="background:#fff; color:#000">MULTI</span> permettono di cambiare colore alla catena per combo gigantesche!</p>
+        <p>⚠️ Non lasciare che troppi razzi svaniscano nel buio senza essere catturati!</p>
+      </div>
+      <button id="start-btn" class="btn-primary" type="button">ACCENDI LA NOTTE</button>
+    </div>
+  </section>
+
+  <section id="over-overlay" class="overlay" hidden>
+    <div class="modal">
+      <h2>SPETTACOLO CONCLUSO</h2>
+      <div class="subtitle" id="over-reason">I fuochi d'artificio sono finiti nel cielo scuro</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="label">PUNTI FINALI</div>
+          <div class="value" id="final-score" style="color:var(--gold);">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">RECORD</div>
+          <div class="value" id="final-best">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">MAX COMBO</div>
+          <div class="value" id="final-combo" style="color:var(--cyan);">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">ESPLOSIONI TOTALI</div>
+          <div class="value" id="final-explosions">0</div>
+        </div>
+      </div>
+      <button id="restart-btn" class="btn-primary" type="button">GIOCA ANCORA</button>
+    </div>
+  </section>
+</div>
+
+<!-- Three.js from salta-rana folder (already in repo) -->
+<script src="../salta-rana/three.min.js"></script>
+<script>
+(() => {
+  const COLORS = {
+    RED: { id: 'RED', hex: 0xff3366, css: '#ff3366', name: 'Rosso' },
+    BLUE: { id: 'BLUE', hex: 0x00d4ff, css: '#00d4ff', name: 'Blu' },
+    GREEN: { id: 'GREEN', hex: 0x2bf784, css: '#2bf784', name: 'Verde' },
+    PURPLE: { id: 'PURPLE', hex: 0xb946ff, css: '#b946ff', name: 'Viola' },
+    GOLD: { id: 'GOLD', hex: 0xffbe26, css: '#ffbe26', name: 'Oro' },
+    WILD: { id: 'WILD', hex: 0xffffff, css: '#ffffff', name: 'Wild Rainbow' }
+  };
+  const COLOR_KEYS = ['RED', 'BLUE', 'GREEN', 'PURPLE'];
+
+  let audioCtx = null;
+  let audioEnabled = true;
+
+  function initAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { audioEnabled = false; }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
+  }
+
+  function playCatchTone(pitchMultiplier = 1) {
+    if (!audioEnabled || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    const baseFreq = 440 * Math.pow(1.08, Math.min(pitchMultiplier, 16));
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.12);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.16);
+  }
+
+  function playExplosionTone(chainCount = 1, isStar = false) {
+    if (!audioEnabled || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const bufferSize = audioCtx.sampleRate * 0.45;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.15));
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(isStar ? 1200 : 600, now);
+    filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+    const gain = audioCtx.createGain();
+    const volume = Math.min(0.7, 0.25 + chainCount * 0.04);
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    noise.start(now);
+
+    if (chainCount >= 3) {
+      const chime = audioCtx.createOscillator();
+      const cGain = audioCtx.createGain();
+      chime.type = 'sine';
+      chime.frequency.setValueAtTime(523.25 * (1 + chainCount * 0.1), now);
+      chime.frequency.exponentialRampToValueAtTime(1046.5, now + 0.35);
+      cGain.gain.setValueAtTime(0.18, now);
+      cGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      chime.connect(cGain); cGain.connect(audioCtx.destination);
+      chime.start(now); chime.stop(now + 0.36);
+    }
+  }
+
+  function playMissSound() {
+    if (!audioEnabled || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.linearRampToValueAtTime(70, now + 0.2);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.21);
+  }
+
+  const container = document.getElementById('game-container');
+  const crosshairEl = document.getElementById('crosshair');
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x03040c, 0.005);
+
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 5, 45);
+  camera.lookAt(0, 10, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  container.prepend(renderer.domElement);
+
+  const cityGroup = new THREE.Group();
+  scene.add(cityGroup);
+  const buildingMat = new THREE.MeshBasicMaterial({ color: 0x080c16 });
+
+  for (let i = -25; i <= 25; i++) {
+    const width = 2.5 + Math.random() * 2.5;
+    const height = 4 + Math.random() * 14;
+    const depth = 2 + Math.random() * 3;
+    const geo = new THREE.BoxGeometry(width, height, depth);
+    const bld = new THREE.Mesh(geo, buildingMat);
+    bld.position.set(i * 3.4 + (Math.random() - 0.5) * 1.5, height / 2 - 8, -30 - Math.random() * 15);
+    cityGroup.add(bld);
+  }
+
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 350;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount * 3; i += 3) {
+    starPositions[i] = (Math.random() - 0.5) * 200;
+    starPositions[i + 1] = Math.random() * 80;
+    starPositions[i + 2] = -50 - Math.random() * 100;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.75 });
+  const starPoints = new THREE.Points(starGeo, starMat);
+  scene.add(starPoints);
+
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  const rawPointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+  let gameState = 'MENU';
+  let score = 0, hiScore = 0;
+  try { hiScore = +localStorage.getItem('fantavision_hiscore') || 0; } catch (e) {}
+  let stage = 1, stageTimer = 60, dangerLevel = 0, starMeter = 0;
+  let maxComboRecorded = 0, totalExplosionsRecorded = 0;
+
+  const flares = [];
+  const MAX_ACTIVE_FLARES = 45;
+  let flareSpawnTimer = 0;
+
+  let selectedFlares = [];
+  let currentChainColor = null;
+
+  const MAX_CHAIN_POINTS = 50;
+  const chainLinePositions = new Float32Array(MAX_CHAIN_POINTS * 3);
+  const chainLineGeo = new THREE.BufferGeometry();
+  chainLineGeo.setAttribute('position', new THREE.BufferAttribute(chainLinePositions, 3));
+  const chainLineMat = new THREE.LineBasicMaterial({
+    color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending
+  });
+  const chainLine = new THREE.Line(chainLineGeo, chainLineMat);
+  chainLine.frustumCulled = false;
+  scene.add(chainLine);
+
+  const explosionParticles = [];
+  const MAX_PARTICLES = 1600;
+  const particleGeo = new THREE.BufferGeometry();
+  const partPos = new Float32Array(MAX_PARTICLES * 3);
+  const partColors = new Float32Array(MAX_PARTICLES * 3);
+  const partSizes = new Float32Array(MAX_PARTICLES);
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
+  particleGeo.setAttribute('color', new THREE.BufferAttribute(partColors, 3));
+  particleGeo.setAttribute('size', new THREE.BufferAttribute(partSizes, 1));
+
+  function createParticleTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.3, 'rgba(255,255,255,0.85)');
+    grad.addColorStop(0.7, 'rgba(255,255,255,0.2)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  const particleMat = new THREE.PointsMaterial({
+    size: 1.8, vertexColors: true, transparent: true, opacity: 1.0,
+    blending: THREE.AdditiveBlending, depthWrite: false, map: createParticleTexture()
+  });
+  const particleSystem = new THREE.Points(particleGeo, particleMat);
+  particleSystem.frustumCulled = false;
+  scene.add(particleSystem);
+
+  for (let i = 0; i < MAX_PARTICLES; i++) {
+    explosionParticles.push({
+      active: false, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
+      r: 1, g: 1, b: 1, life: 0, maxLife: 1, size: 1.5
+    });
+  }
+
+  const flareGeo = new THREE.SphereGeometry(0.7, 16, 16);
+  const haloGeo = new THREE.RingGeometry(0.85, 1.25, 24);
+
+  function createFlareMesh(colorData) {
+    const group = new THREE.Group();
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 });
+    const core = new THREE.Mesh(flareGeo, coreMat); group.add(core);
+    const auraMat = new THREE.MeshBasicMaterial({ color: colorData.hex, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending });
+    const aura = new THREE.Mesh(new THREE.SphereGeometry(1.05, 16, 16), auraMat); group.add(aura);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const ring = new THREE.Mesh(haloGeo, ringMat); ring.visible = false; group.add(ring);
+    group.userData = { core, aura, ring };
+    return group;
+  }
+
+  function spawnFlare() {
+    if (flares.length >= MAX_ACTIVE_FLARES) return;
+    let colorKey = COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)];
+    if (Math.random() < 0.08) colorKey = 'WILD';
+    const colorData = COLORS[colorKey];
+    const mesh = createFlareMesh(colorData);
+    const startX = (Math.random() - 0.5) * 38;
+    const startY = -8 + Math.random() * 2;
+    const startZ = (Math.random() - 0.5) * 16;
+    mesh.position.set(startX, startY, startZ);
+    scene.add(mesh);
+    const floatDuration = 4.0 + Math.random() * 2.5;
+    flares.push({
+      mesh, colorKey, colorData, isWild: colorKey === 'WILD',
+      startX, startY, startZ,
+      vx: (Math.random() - 0.5) * 1.8, vy: 6.5 + Math.random() * 4.0, vz: (Math.random() - 0.5) * 1.0,
+      gravity: -1.8, age: 0, maxAge: floatDuration,
+      selected: false, hovered: false, pulsePhase: Math.random() * Math.PI * 2
+    });
+  }
+
+  function triggerExplosion(x, y, z, colorData, count = 70, power = 1.0) {
+    let spawned = 0;
+    const c = new THREE.Color(colorData.hex);
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      const p = explosionParticles[i];
+      if (p.active) continue;
+      p.active = true; p.x = x; p.y = y; p.z = z;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      const speed = (3.5 + Math.random() * 8.0) * power;
+      p.vx = Math.sin(phi) * Math.cos(theta) * speed;
+      p.vy = Math.sin(phi) * Math.sin(theta) * speed + 1.2;
+      p.vz = Math.cos(phi) * speed;
+      p.r = c.r + (Math.random() - 0.5) * 0.15;
+      p.g = c.g + (Math.random() - 0.5) * 0.15;
+      p.b = c.b + (Math.random() - 0.5) * 0.15;
+      p.life = 0; p.maxLife = 0.8 + Math.random() * 0.7;
+      p.size = (1.5 + Math.random() * 1.5) * power;
+      spawned++;
+      if (spawned >= count) break;
+    }
+  }
+
+  function trySelectFlare(flare) {
+    if (gameState !== 'PLAYING') return;
+    if (flare.selected) return;
+    if (selectedFlares.length === 0) {
+      flare.selected = true; selectedFlares.push(flare);
+      currentChainColor = flare.colorKey;
+      flare.mesh.userData.ring.visible = true;
+      playCatchTone(1); updateChainUI();
+    } else {
+      const match = (flare.colorKey === currentChainColor) || (flare.colorKey === 'WILD') || (currentChainColor === 'WILD');
+      if (match) {
+        flare.selected = true; selectedFlares.push(flare);
+        if (flare.colorKey !== 'WILD') currentChainColor = flare.colorKey;
+        flare.mesh.userData.ring.visible = true;
+        playCatchTone(selectedFlares.length); updateChainUI();
+        if (selectedFlares.length === 3) showToast("3-CATCH!", "var(--cyan)");
+        else if (selectedFlares.length === 5) showToast("5-CHAIN COMBO!", "var(--gold)");
+        else if (selectedFlares.length === 8) showToast("MEGA CHAIN!!", "var(--purple)");
+        else if (selectedFlares.length >= 12) showToast("FANTASTIC BLASTER!!!", "var(--red)");
+      }
+    }
+  }
+
+  function detonateChain() {
+    if (gameState !== 'PLAYING') return;
+    const count = selectedFlares.length;
+    if (count < 2) { clearSelection(); return; }
+    const multiplier = 1 + (count - 2) * 0.75;
+    const pointsGained = Math.round(count * 120 * multiplier);
+    score += pointsGained;
+    if (count > maxComboRecorded) maxComboRecorded = count;
+    totalExplosionsRecorded += count;
+    dangerLevel = Math.max(0, dangerLevel - count * 4.5);
+    starMeter = Math.min(100, starMeter + count * 6.5);
+    playExplosionTone(count, count >= 6);
+
+    selectedFlares.forEach((f, idx) => {
+      const pos = f.mesh.position;
+      setTimeout(() => {
+        triggerExplosion(pos.x, pos.y, pos.z, f.colorData, 55 + count * 6, 1.0 + count * 0.08);
+      }, idx * 40);
+      scene.remove(f.mesh);
+      const index = flares.indexOf(f);
+      if (index > -1) flares.splice(index, 1);
+    });
+
+    if (starMeter >= 100) { triggerStarShow(); starMeter = 0; }
+    showToast(`+${pointsGained} (${count} COMBO)`, COLORS[currentChainColor]?.css || 'var(--gold)');
+    clearSelection(); updateHUD();
+  }
+
+  function clearSelection() {
+    selectedFlares.forEach(f => {
+      f.selected = false;
+      if (f.mesh?.userData?.ring) f.mesh.userData.ring.visible = false;
+    });
+    selectedFlares = []; currentChainColor = null; updateChainUI();
+  }
+
+  function triggerStarShow() {
+    showToast("STAR SPECIAL FINALE!", "var(--gold)");
+    for (let k = 0; k < 6; k++) {
+      setTimeout(() => {
+        const x = (Math.random() - 0.5) * 30;
+        const y = 14 + Math.random() * 12;
+        const color = COLORS[COLOR_KEYS[k % COLOR_KEYS.length]];
+        triggerExplosion(x, y, 0, color, 120, 1.8);
+        playExplosionTone(10, true);
+        score += 800; updateHUD();
+      }, k * 220);
+    }
+  }
+
+  const scoreDisplay = document.getElementById('score-display');
+  const chainDisplay = document.getElementById('chain-display');
+  const stageDisplay = document.getElementById('stage-display');
+  const timerDisplay = document.getElementById('timer-display');
+  const dangerBar = document.getElementById('danger-bar');
+  const starmeterBar = document.getElementById('starmeter-bar');
+  const hiDisplay = document.getElementById('hi-display');
+  const toastEl = document.getElementById('toast');
+  let toastTimeout = null;
+
+  function showToast(text, colorCss = '#ffffff') {
+    toastEl.textContent = text;
+    toastEl.style.color = colorCss;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { toastEl.classList.remove('show'); }, 900);
+  }
+
+  function updateChainUI() {
+    const count = selectedFlares.length;
+    chainDisplay.innerHTML = `${count}<span class="val-sub">CATCH</span>`;
+    if (currentChainColor && COLORS[currentChainColor]) {
+      chainLineMat.color.setHex(COLORS[currentChainColor].hex);
+      chainDisplay.style.color = COLORS[currentChainColor].css;
+    } else {
+      chainLineMat.color.setHex(0x00ffff);
+      chainDisplay.style.color = 'var(--cyan)';
+    }
+
+    for (let i = 0; i < MAX_CHAIN_POINTS; i++) {
+      if (i < count) {
+        const p = selectedFlares[i].mesh.position;
+        chainLinePositions[i * 3] = p.x; chainLinePositions[i * 3 + 1] = p.y; chainLinePositions[i * 3 + 2] = p.z;
+      } else if (count > 0) {
+        const lastP = selectedFlares[count - 1].mesh.position;
+        chainLinePositions[i * 3] = lastP.x; chainLinePositions[i * 3 + 1] = lastP.y; chainLinePositions[i * 3 + 2] = lastP.z;
+      } else {
+        chainLinePositions[i * 3] = 0; chainLinePositions[i * 3 + 1] = -100; chainLinePositions[i * 3 + 2] = 0;
+      }
+    }
+    chainLineGeo.attributes.position.needsUpdate = true;
+    chainLine.visible = count >= 2;
+  }
+
+  function updateHUD() {
+    scoreDisplay.textContent = score;
+    hiDisplay.textContent = Math.max(score, hiScore);
+    stageDisplay.textContent = `STAGE ${stage}`;
+    timerDisplay.textContent = `${Math.ceil(stageTimer)}s`;
+    dangerBar.style.width = `${Math.min(100, Math.max(0, dangerLevel))}%`;
+    starmeterBar.style.width = `${Math.min(100, Math.max(0, starMeter))}%`;
+  }
+
+  function startGame() {
+    initAudio();
+    score = 0; stage = 1; stageTimer = 60; dangerLevel = 0; starMeter = 0;
+    maxComboRecorded = 0; totalExplosionsRecorded = 0;
+    flares.forEach(f => scene.remove(f.mesh));
+    flares.length = 0; selectedFlares.length = 0; currentChainColor = null;
+    updateChainUI();
+    for (let i = 0; i < MAX_PARTICLES; i++) explosionParticles[i].active = false;
+    document.getElementById('menu-overlay').hidden = true;
+    document.getElementById('over-overlay').hidden = true;
+    gameState = 'PLAYING';
+    updateHUD();
+    showToast("STAGE 1 START!", "var(--cyan)");
+  }
+
+  function gameOver(reason) {
+    gameState = 'OVER';
+    if (score > hiScore) {
+      hiScore = score;
+      try { localStorage.setItem('fantavision_hiscore', String(hiScore)); } catch (e) {}
+    }
+    document.getElementById('over-reason').textContent = reason;
+    document.getElementById('final-score').textContent = score;
+    document.getElementById('final-best').textContent = hiScore;
+    document.getElementById('final-combo').textContent = maxComboRecorded;
+    document.getElementById('final-explosions').textContent = totalExplosionsRecorded;
+    document.getElementById('over-overlay').hidden = false;
+  }
+
+  let lastTime = performance.now();
+
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+
+    if (gameState === 'PLAYING') {
+      stageTimer -= dt;
+      if (stageTimer <= 0) {
+        stage++; stageTimer = 50 + stage * 5; dangerLevel = Math.max(0, dangerLevel - 20);
+        showToast(`STAGE ${stage} CLEARED!`, "var(--gold)");
+      }
+      if (flares.length === 0) dangerLevel += dt * 4;
+
+      flareSpawnTimer += dt;
+      const spawnInterval = Math.max(0.4, 1.2 - stage * 0.12);
+      if (flareSpawnTimer >= spawnInterval) {
+        flareSpawnTimer = 0;
+        const countToSpawn = 1 + Math.floor(Math.random() * (stage > 2 ? 3 : 2));
+        for (let i = 0; i < countToSpawn; i++) spawnFlare();
+      }
+
+      for (let i = flares.length - 1; i >= 0; i--) {
+        const f = flares[i];
+        f.age += dt; f.vy += f.gravity * dt;
+        f.mesh.position.x += f.vx * dt; f.mesh.position.y += f.vy * dt; f.mesh.position.z += f.vz * dt;
+        f.pulsePhase += dt * 5;
+        const scale = 1.0 + Math.sin(f.pulsePhase) * 0.15;
+        f.mesh.userData.aura.scale.set(scale, scale, scale);
+        if (f.selected) f.mesh.userData.ring.rotation.z += dt * 4;
+        const lifeFraction = f.age / f.maxAge;
+        if (lifeFraction > 0.75) {
+          const fade = 1 - (lifeFraction - 0.75) / 0.25;
+          f.mesh.userData.core.material.opacity = fade * 0.95;
+          f.mesh.userData.aura.material.opacity = fade * 0.65;
+        }
+        if (f.age >= f.maxAge || f.mesh.position.y < -12) {
+          if (!f.selected) { dangerLevel += 6.5; playMissSound(); }
+          else {
+            const sIdx = selectedFlares.indexOf(f);
+            if (sIdx > -1) selectedFlares.splice(sIdx, 1);
+            if (selectedFlares.length === 0) currentChainColor = null;
+            updateChainUI();
+          }
+          scene.remove(f.mesh); flares.splice(i, 1);
+        }
+      }
+
+      if (dangerLevel >= 100) gameOver("Il cielo si è spento! Troppi fuochi d'artificio mancati.");
+      updateHUD();
+    }
+
+    let activePartCount = 0;
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      const p = explosionParticles[i];
+      if (!p.active) continue;
+      p.life += dt;
+      if (p.life >= p.maxLife) { p.active = false; partPos[i * 3 + 1] = -1000; continue; }
+      activePartCount++;
+      p.vy -= 4.2 * dt; p.vx *= 0.985; p.vz *= 0.985;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+      partPos[i * 3] = p.x; partPos[i * 3 + 1] = p.y; partPos[i * 3 + 2] = p.z;
+      const fade = Math.max(0, 1 - p.life / p.maxLife);
+      partColors[i * 3] = p.r * fade; partColors[i * 3 + 1] = p.g * fade; partColors[i * 3 + 2] = p.b * fade;
+      partSizes[i] = p.size * (0.4 + 0.6 * fade);
+    }
+    if (activePartCount > 0) {
+      particleGeo.attributes.position.needsUpdate = true;
+      particleGeo.attributes.color.needsUpdate = true;
+      particleGeo.attributes.size.needsUpdate = true;
+    }
+    camera.position.x = Math.sin(now * 0.0004) * 1.5;
+    camera.lookAt(0, 10, 0);
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(animate);
+
+  function updatePointer(e) {
+    const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : rawPointer.x);
+    const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : rawPointer.y);
+    rawPointer.x = clientX; rawPointer.y = clientY;
+    pointer.x = (clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+    crosshairEl.style.left = `${clientX}px`;
+    crosshairEl.style.top = `${clientY}px`;
+    raycaster.setFromCamera(pointer, camera);
+    const meshes = flares.map(f => f.mesh.children[0]);
+    const intersects = raycaster.intersectObjects(meshes);
+    if (intersects.length > 0) {
+      crosshairEl.classList.add('locked');
+      const hitMesh = intersects[0].object.parent;
+      const targetFlare = flares.find(f => f.mesh === hitMesh);
+      if (targetFlare && (e.buttons === 1 || e.type === 'touchmove' || e.type === 'touchstart')) {
+        trySelectFlare(targetFlare);
+      }
+    } else { crosshairEl.classList.remove('locked'); }
+  }
+
+  window.addEventListener('pointermove', updatePointer);
+  window.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.hud, .modal, .btn-icon, .mobile-detonate-btn')) return;
+    if (e.button === 2) { e.preventDefault(); detonateChain(); return; }
+    initAudio(); updatePointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    const meshes = flares.map(f => f.mesh.children[0]);
+    const intersects = raycaster.intersectObjects(meshes);
+    if (intersects.length > 0) {
+      const hitMesh = intersects[0].object.parent;
+      const targetFlare = flares.find(f => f.mesh === hitMesh);
+      if (targetFlare) trySelectFlare(targetFlare);
+    }
+  });
+
+  window.addEventListener('touchmove', updatePointer, { passive: true });
+  window.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.hud, .modal, .btn-icon, .mobile-detonate-btn')) return;
+    initAudio(); updatePointer(e);
+  }, { passive: true });
+
+  window.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('.modal')) { e.preventDefault(); detonateChain(); }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); detonateChain(); }
+    else if (e.code === 'KeyC') { clearSelection(); }
+  });
+
+  const mobileDetonateBtn = document.getElementById('mobile-detonate');
+  mobileDetonateBtn.addEventListener('click', (e) => { e.preventDefault(); detonateChain(); });
+  mobileDetonateBtn.addEventListener('touchstart', (e) => { e.preventDefault(); detonateChain(); });
+
+  const audioToggle = document.getElementById('audio-toggle');
+  audioToggle.addEventListener('click', () => {
+    initAudio(); audioEnabled = !audioEnabled;
+    audioToggle.textContent = audioEnabled ? 'AUDIO: ON' : 'AUDIO: OFF';
+  });
+
+  document.getElementById('start-btn').addEventListener('click', startGame);
+  document.getElementById('restart-btn').addEventListener('click', startGame);
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+</body>
+</html>
