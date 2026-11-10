@@ -4,24 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#03040c">
-<title>Fantavision Fireworks: Chain Blast</title>
+<title>Fantavision 3D: Metropolis Fireworks</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 <style>
   [hidden] { display: none !important; }
   :root {
-    --bg: #03040c;
+    --bg: #02030a;
     --red: #ff3366;
     --blue: #00d4ff;
     --green: #2bf784;
     --gold: #ffbe26;
     --purple: #b946ff;
     --cyan: #00ffff;
-    --glass: rgba(10, 16, 32, 0.78);
+    --glass: rgba(8, 14, 28, 0.76);
     --glass-border: rgba(0, 212, 255, 0.35);
-    --font-heading: 'Orbitron', monospace, sans-serif;
-    --font-ui: 'Rajdhani', sans-serif;
+    --font-heading: 'Orbitron', system-ui, monospace, sans-serif;
+    --font-ui: 'Rajdhani', system-ui, sans-serif;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -39,37 +39,37 @@
   .hud {
     position: absolute; top: 0; left: 0; right: 0; pointer-events: none;
     display: flex; justify-content: space-between; align-items: flex-start;
-    padding: clamp(10px, 2.5vw, 20px);
+    padding: clamp(8px, 2vw, 18px);
     z-index: 10;
   }
-  .hud-col { display: flex; flex-direction: column; gap: 8px; }
+  .hud-col { display: flex; flex-direction: column; gap: 6px; }
   .hud-card {
     background: var(--glass);
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-radius: 8px;
-    padding: 8px 16px;
+    padding: 6px 14px;
     box-shadow: 0 4px 20px rgba(0, 212, 255, 0.15);
   }
   .label {
-    font-family: var(--font-heading); font-size: 0.65rem;
+    font-family: var(--font-heading); font-size: 0.6rem;
     letter-spacing: 2px; color: #88a3c7; text-transform: uppercase;
   }
   .value {
-    font-family: var(--font-heading); font-size: 1.8rem; font-weight: 700;
+    font-family: var(--font-heading); font-size: clamp(1.2rem, 3.8vw, 1.7rem); font-weight: 700;
     line-height: 1.1; color: #ffffff;
     text-shadow: 0 0 12px rgba(255,255,255,0.4);
   }
-  .val-sub { font-size: 1rem; color: #a9c5ea; margin-left: 4px; }
+  .val-sub { font-size: 0.85rem; color: #a9c5ea; margin-left: 4px; }
   #score-display { color: var(--gold); text-shadow: 0 0 16px rgba(255,190,38,0.6); }
   #chain-display { color: var(--cyan); text-shadow: 0 0 16px rgba(0,255,255,0.6); }
 
   .meter-container {
-    display: flex; align-items: center; gap: 10px; margin-top: 4px;
+    display: flex; align-items: center; gap: 8px; margin-top: 4px;
   }
   .meter-bar {
-    width: clamp(100px, 25vw, 180px); height: 10px;
+    width: clamp(90px, 22vw, 170px); height: 9px;
     background: rgba(255,255,255,0.12);
     border-radius: 5px; overflow: hidden;
     border: 1px solid rgba(255,255,255,0.2);
@@ -81,11 +81,12 @@
   #danger-bar { background: linear-gradient(90deg, #ff9900, #ff2255); }
   #starmeter-bar { background: linear-gradient(90deg, #ff3366, #ffbe26, #00d4ff); }
 
+  .btn-row { display: flex; gap: 6px; pointer-events: auto; }
   .btn-icon {
     pointer-events: auto; background: var(--glass);
     border: 1px solid var(--glass-border);
-    color: #fff; font-family: var(--font-ui); font-size: 0.9rem;
-    font-weight: 700; padding: 8px 14px; border-radius: 6px;
+    color: #fff; font-family: var(--font-ui); font-size: 0.82rem;
+    font-weight: 700; padding: 6px 11px; border-radius: 6px;
     cursor: pointer; transition: all 0.2s;
     backdrop-filter: blur(6px);
   }
@@ -93,9 +94,9 @@
 
   .toast-banner {
     position: absolute; top: 22%; left: 50%; transform: translate(-50%, -50%);
-    font-family: var(--font-heading); font-size: clamp(2rem, 6vw, 3.6rem);
+    font-family: var(--font-heading); font-size: clamp(1.6rem, 5.5vw, 3.2rem);
     font-weight: 900; text-align: center; text-transform: uppercase;
-    letter-spacing: 4px; pointer-events: none; opacity: 0;
+    letter-spacing: 3px; pointer-events: none; opacity: 0;
     transition: opacity 0.2s, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 15; text-shadow: 0 0 30px currentColor;
   }
@@ -105,64 +106,62 @@
 
   .overlay {
     position: absolute; inset: 0; z-index: 30;
-    background: radial-gradient(circle at center, rgba(3,6,18,0.85) 0%, rgba(1,2,8,0.96) 100%);
+    background: radial-gradient(circle at center, rgba(3,6,18,0.65) 0%, rgba(1,2,8,0.88) 100%);
     display: flex; justify-content: center; align-items: center;
-    padding: 20px;
+    padding: 16px;
   }
   .modal {
-    width: 100%; max-width: 520px;
+    width: 100%; max-width: 500px;
     background: var(--glass);
     border: 1.5px solid var(--glass-border);
-    border-radius: 16px; padding: clamp(20px, 5vw, 36px);
+    border-radius: 16px; padding: clamp(18px, 4vw, 32px);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 0 40px rgba(0, 212, 255, 0.25), inset 0 0 20px rgba(0, 212, 255, 0.05);
     text-align: center;
   }
   .modal h1 {
-    font-family: var(--font-heading); font-size: clamp(2rem, 6vw, 3rem);
-    font-weight: 900; margin: 0 0 8px 0; letter-spacing: 3px;
+    font-family: var(--font-heading); font-size: clamp(1.8rem, 6vw, 2.8rem);
+    font-weight: 900; margin: 0 0 6px 0; letter-spacing: 3px;
     background: linear-gradient(135deg, #00d4ff, #ffffff, #ff3366);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
   .modal h2 {
-    font-family: var(--font-heading); font-size: 2rem; color: #ff3366;
-    margin: 0 0 12px 0; text-shadow: 0 0 20px rgba(255,51,102,0.6);
+    font-family: var(--font-heading); font-size: 1.8rem; color: #ff3366;
+    margin: 0 0 10px 0; text-shadow: 0 0 20px rgba(255,51,102,0.6);
   }
   .subtitle {
-    font-size: 1.15rem; color: #9ab4d6; margin-bottom: 24px; font-weight: 600;
+    font-size: 1.05rem; color: #9ab4d6; margin-bottom: 18px; font-weight: 600;
   }
   .tutorial-box {
-    text-align: left; background: rgba(0, 0, 0, 0.4);
-    border-radius: 10px; padding: 14px 18px; margin-bottom: 24px;
+    text-align: left; background: rgba(0, 0, 0, 0.45);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
     border: 1px solid rgba(255,255,255,0.1);
-    font-size: 0.98rem; line-height: 1.55; color: #d0e2fa;
+    font-size: 0.92rem; line-height: 1.5; color: #d0e2fa;
   }
+  .tutorial-box p { margin: 6px 0; }
   .tutorial-box b { color: var(--gold); }
   .tutorial-box span.badge {
-    display: inline-block; padding: 2px 8px; border-radius: 4px;
-    font-family: var(--font-heading); font-size: 0.75rem; font-weight: 700;
+    display: inline-block; padding: 2px 7px; border-radius: 4px;
+    font-family: var(--font-heading); font-size: 0.7rem; font-weight: 700;
     margin-right: 4px;
   }
-  .badge-red { background: var(--red); color: #fff; }
-  .badge-blue { background: var(--blue); color: #000; }
-  .badge-green { background: var(--green); color: #000; }
   .badge-gold { background: var(--gold); color: #000; }
 
   .stat-grid {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
-    margin: 20px 0 26px 0;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    margin: 16px 0 22px 0;
   }
   .stat-box {
     background: rgba(0, 0, 0, 0.35); border-radius: 8px; padding: 10px;
     border: 1px solid rgba(0, 212, 255, 0.2);
   }
   .btn-primary {
-    font-family: var(--font-heading); font-size: 1.25rem; font-weight: 900;
+    font-family: var(--font-heading); font-size: 1.15rem; font-weight: 900;
     letter-spacing: 2px; text-transform: uppercase;
     background: linear-gradient(135deg, #00d4ff, #0088ff);
     color: #030816; border: none; border-radius: 8px;
-    padding: 14px 38px; cursor: pointer;
+    padding: 14px 32px; cursor: pointer;
     box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
@@ -173,10 +172,10 @@
 
   .mobile-detonate-btn {
     position: absolute; bottom: 24px; right: 24px; z-index: 20;
-    width: 86px; height: 86px; border-radius: 50%;
+    width: 88px; height: 88px; border-radius: 50%;
     background: radial-gradient(circle, #ff3366, #b30030);
     border: 3px solid #ff99bb; color: white;
-    font-family: var(--font-heading); font-size: 0.9rem; font-weight: 900;
+    font-family: var(--font-heading); font-size: 0.95rem; font-weight: 900;
     display: none; align-items: center; justify-content: center;
     box-shadow: 0 0 30px rgba(255, 51, 102, 0.7);
     touch-action: manipulation; cursor: pointer;
@@ -186,12 +185,12 @@
   }
   .crosshair-cursor {
     position: absolute; pointer-events: none; z-index: 5;
-    width: 36px; height: 36px; transform: translate(-50%, -50%);
-    border: 2px dashed rgba(0, 212, 255, 0.6); border-radius: 50%;
+    width: 38px; height: 38px; transform: translate(-50%, -50%);
+    border: 2px dashed rgba(0, 212, 255, 0.65); border-radius: 50%;
     transition: width 0.1s, height 0.1s;
   }
   .crosshair-cursor.locked {
-    border: 2px solid #ff3366; width: 44px; height: 44px;
+    border: 2px solid #ff3366; width: 46px; height: 46px;
     box-shadow: 0 0 15px #ff3366;
   }
 </style>
@@ -218,7 +217,10 @@
     </div>
 
     <div class="hud-col" style="align-items: flex-end;">
-      <button id="audio-toggle" class="btn-icon" type="button">AUDIO: ON</button>
+      <div class="btn-row">
+        <button id="cam-toggle" class="btn-icon" type="button">CAM: VOLO 3D</button>
+        <button id="audio-toggle" class="btn-icon" type="button">AUDIO: ON</button>
+      </div>
       <div class="hud-card" style="align-items: flex-end; text-align: right;">
         <div class="label">Danger / Miss Limit</div>
         <div class="meter-container">
@@ -233,7 +235,7 @@
       </div>
       <div class="hud-card" style="text-align: right;">
         <div class="label">Miglior Punteggio</div>
-        <div class="value" id="hi-display" style="font-size: 1.3rem;">0</div>
+        <div class="value" id="hi-display" style="font-size: 1.15rem;">0</div>
       </div>
     </div>
   </header>
@@ -243,15 +245,15 @@
 
   <section id="menu-overlay" class="overlay">
     <div class="modal">
-      <h1>FANTAVISION</h1>
-      <div class="subtitle">Fireworks Puzzle & Chain Reaction</div>
+      <h1>FANTAVISION 3D</h1>
+      <div class="subtitle">Metropolis 3D & Fireworks Chain Puzzle</div>
       <div class="tutorial-box">
-        <p>🎆 <b>CATTURA (CATCH):</b> Clicca o tocca i fuochi d'artificio dello stesso colore per collegarli con il raggio laser in una catena (minimo 2 razzi).</p>
-        <p>💥 <b>DETONA (BOOM):</b> Premi <kbd>SPAZIO</kbd>, clicca col <b>tasto destro</b>, o tocca il pulsante <b>BOOM</b> per far esplodere la catena!</p>
-        <p>⭐ <b>COLOR CHANGE:</b> I fuochi <span class="badge badge-gold">WILD</span> o <span class="badge" style="background:#fff; color:#000">MULTI</span> permettono di cambiare colore alla catena per combo gigantesche!</p>
-        <p>⚠️ Non lasciare che troppi razzi svaniscano nel buio senza essere catturati!</p>
+        <p>🏙️ <b>METROPOLI 3D:</b> Sorvola la città 3D tra grattacieli illuminati, ponti sospesi, ruota panoramica, fiumi riflettenti e traffico cittadino!</p>
+        <p>🎆 <b>CATTURA (CATCH):</b> Tocca o trascina sui razzi dello stesso colore per collegarli in catena (minimo 2 razzi).</p>
+        <p>💥 <b>DETONA (BOOM):</b> Premi <kbd>SPAZIO</kbd>, clic destro, o tocca il pulsante <b>BOOM</b> per far esplodere la catena e illuminare i palazzi in tempo reale!</p>
+        <p>⭐ <b>WILD STAR:</b> I razzi <span class="badge badge-gold">WILD</span> permettono di cambiare colore nella stessa catena.</p>
       </div>
-      <button id="start-btn" class="btn-primary" type="button">ACCENDI LA NOTTE</button>
+      <button id="start-btn" class="btn-primary" type="button">ACCENDI LA METROPOLI</button>
     </div>
   </section>
 
@@ -273,7 +275,7 @@
           <div class="value" id="final-combo" style="color:var(--cyan);">0</div>
         </div>
         <div class="stat-box">
-          <div class="label">ESPLOSIONI TOTALI</div>
+          <div class="label">ESPLOSIONI</div>
           <div class="value" id="final-explosions">0</div>
         </div>
       </div>
@@ -282,10 +284,12 @@
   </section>
 </div>
 
-<!-- Three.js from salta-rana folder (already in repo) -->
 <script src="../salta-rana/three.min.js"></script>
 <script>
 (() => {
+  // ==========================================
+  // COLOR PALETTE
+  // ==========================================
   const COLORS = {
     RED: { id: 'RED', hex: 0xff3366, css: '#ff3366', name: 'Rosso' },
     BLUE: { id: 'BLUE', hex: 0x00d4ff, css: '#00d4ff', name: 'Blu' },
@@ -296,6 +300,9 @@
   };
   const COLOR_KEYS = ['RED', 'BLUE', 'GREEN', 'PURPLE'];
 
+  // ==========================================
+  // WEB AUDIO SYNTHESIZER
+  // ==========================================
   let audioCtx = null;
   let audioEnabled = true;
 
@@ -336,10 +343,10 @@
     noise.buffer = buffer;
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(isStar ? 1200 : 600, now);
-    filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+    filter.frequency.setValueAtTime(isStar ? 1200 : 650, now);
+    filter.frequency.exponentialRampToValueAtTime(75, now + 0.42);
     const gain = audioCtx.createGain();
-    const volume = Math.min(0.7, 0.25 + chainCount * 0.04);
+    const volume = Math.min(0.75, 0.25 + chainCount * 0.04);
     gain.gain.setValueAtTime(volume, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
     noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
@@ -366,55 +373,378 @@
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(160, now);
     osc.frequency.linearRampToValueAtTime(70, now + 0.2);
-    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.setValueAtTime(0.11, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(now); osc.stop(now + 0.21);
   }
 
+  // ==========================================
+  // THREE.JS SCENE & TRUE 3D METROPOLIS
+  // ==========================================
   const container = document.getElementById('game-container');
   const crosshairEl = document.getElementById('crosshair');
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x03040c, 0.005);
+  scene.background = new THREE.Color(0x02040d);
+  scene.fog = new THREE.FogExp2(0x030614, 0.0042);
 
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 5, 45);
-  camera.lookAt(0, 10, 0);
-
+  const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.5, 900);
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
+  renderer.toneMappingExposure = 1.25;
   container.prepend(renderer.domElement);
 
-  const cityGroup = new THREE.Group();
-  scene.add(cityGroup);
-  const buildingMat = new THREE.MeshBasicMaterial({ color: 0x080c16 });
+  // Lighting for True 3D City
+  const ambientLight = new THREE.AmbientLight(0x1a2642, 1.3);
+  scene.add(ambientLight);
 
-  for (let i = -25; i <= 25; i++) {
-    const width = 2.5 + Math.random() * 2.5;
-    const height = 4 + Math.random() * 14;
-    const depth = 2 + Math.random() * 3;
-    const geo = new THREE.BoxGeometry(width, height, depth);
-    const bld = new THREE.Mesh(geo, buildingMat);
-    bld.position.set(i * 3.4 + (Math.random() - 0.5) * 1.5, height / 2 - 8, -30 - Math.random() * 15);
-    cityGroup.add(bld);
+  const moonLight = new THREE.DirectionalLight(0x6688cc, 0.9);
+  moonLight.position.set(60, 120, 40);
+  scene.add(moonLight);
+
+  // Dynamic PointLights pool for Firework Explosions illuminating the 3D buildings!
+  const fireworkLights = [];
+  for (let i = 0; i < 4; i++) {
+    const pLight = new THREE.PointLight(0xffffff, 0, 95, 1.5);
+    pLight.position.set(0, -500, 0);
+    scene.add(pLight);
+    fireworkLights.push({ light: pLight, age: 0, maxAge: 0.8 });
   }
 
+  function flashCityLight(worldPos, hexColor, intensity = 6.0) {
+    const slot = fireworkLights.find(l => l.light.intensity <= 0.05) || fireworkLights[0];
+    slot.light.color.setHex(hexColor);
+    slot.light.intensity = intensity;
+    slot.light.position.copy(worldPos);
+    slot.age = 0;
+    slot.maxAge = 0.85;
+  }
+
+  // Procedural Window Texture Generator for 3D Skyscrapers
+  function createBuildingTexture(hueStyle) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#070b14';
+    ctx.fillRect(0, 0, 128, 256);
+
+    const cols = 8, rows = 24;
+    const padX = 3, padY = 3;
+    const w = (128 / cols) - padX * 2;
+    const h = (256 / rows) - padY * 2;
+
+    for (let r = 0; r < rows; r++) {
+      const floorLit = Math.random() > 0.22;
+      for (let c = 0; c < cols; c++) {
+        if (floorLit && Math.random() > 0.32) {
+          const rand = Math.random();
+          if (hueStyle === 0) {
+            ctx.fillStyle = rand > 0.3 ? '#ffe49e' : '#ffbb55';
+          } else if (hueStyle === 1) {
+            ctx.fillStyle = rand > 0.4 ? '#a8eeff' : '#ffffff';
+          } else {
+            ctx.fillStyle = rand > 0.6 ? '#ff77aa' : (rand > 0.3 ? '#77ddff' : '#ffeeaa');
+          }
+        } else {
+          ctx.fillStyle = '#0d1424';
+        }
+        ctx.fillRect(c * (128 / cols) + padX, r * (256 / rows) + padY, w, h);
+      }
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
+  const buildingMaterials = [0, 1, 2].map(style => {
+    const tex = createBuildingTexture(style);
+    return new THREE.MeshStandardMaterial({
+      color: 0x202b40,
+      roughness: 0.35,
+      metalness: 0.6,
+      emissive: 0xffffff,
+      emissiveMap: tex,
+      emissiveIntensity: 0.85
+    });
+  });
+
+  const roofDarkMat = new THREE.MeshStandardMaterial({ color: 0x101726, roughness: 0.7, metalness: 0.3 });
+  const neonCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+  const neonPinkMat = new THREE.MeshBasicMaterial({ color: 0xff2277 });
+  const neonGoldMat = new THREE.MeshBasicMaterial({ color: 0xffbe26 });
+
+  // Build True 3D Metropolis World Group
+  const cityWorld = new THREE.Group();
+  scene.add(cityWorld);
+
+  // 1. Ground & Reflective River Bay
+  const groundGeo = new THREE.PlaneGeometry(500, 500);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x050811, roughness: 0.9, metalness: 0.1 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -15;
+  cityWorld.add(ground);
+
+  // River running across Z=[-30..25]
+  const riverGeo = new THREE.PlaneGeometry(500, 52);
+  const riverMat = new THREE.MeshStandardMaterial({
+    color: 0x06152d,
+    roughness: 0.12,
+    metalness: 0.88
+  });
+  const river = new THREE.Mesh(riverGeo, riverMat);
+  river.rotation.x = -Math.PI / 2;
+  river.position.set(0, -14.7, 0);
+  cityWorld.add(river);
+
+  // River Embankments (Quays)
+  const quayGeo = new THREE.BoxGeometry(500, 2.5, 4);
+  const quayNorth = new THREE.Mesh(quayGeo, roofDarkMat);
+  quayNorth.position.set(0, -14, -27);
+  cityWorld.add(quayNorth);
+  const quaySouth = new THREE.Mesh(quayGeo, roofDarkMat);
+  quaySouth.position.set(0, -14, 27);
+  cityWorld.add(quaySouth);
+
+  // 2. 3D Skyscrapers & Towers on both sides of the river
+  const beaconMeshes = [];
+  const boxGeoUnit = new THREE.BoxGeometry(1, 1, 1);
+  const cylGeoUnit = new THREE.CylinderGeometry(0.5, 0.5, 1, 16);
+
+  function addSkyscraper(x, z, w, h, d, matIndex) {
+    const bGroup = new THREE.Group();
+    bGroup.position.set(x, -15, z);
+
+    const mat = buildingMaterials[matIndex % buildingMaterials.length];
+    const body = new THREE.Mesh(boxGeoUnit, mat);
+    body.scale.set(w, h, d);
+    body.position.y = h / 2;
+    bGroup.add(body);
+
+    // Stepped crown / rooftop architecture
+    if (h > 22 && Math.random() > 0.35) {
+      const h2 = 3 + Math.random() * 5;
+      const crown = new THREE.Mesh(boxGeoUnit, mat);
+      crown.scale.set(w * 0.72, h2, d * 0.72);
+      crown.position.y = h + h2 / 2;
+      bGroup.add(crown);
+
+      // Glowing neon trim ring
+      const trim = new THREE.Mesh(boxGeoUnit, Math.random() > 0.5 ? neonCyanMat : neonPinkMat);
+      trim.scale.set(w * 0.76, 0.35, d * 0.76);
+      trim.position.y = h + h2;
+      bGroup.add(trim);
+
+      // Spire + red aviation beacon
+      if (Math.random() > 0.4) {
+        const spireH = 4 + Math.random() * 6;
+        const spire = new THREE.Mesh(cylGeoUnit, roofDarkMat);
+        spire.scale.set(0.25, spireH, 0.25);
+        spire.position.y = h + h2 + spireH / 2;
+        bGroup.add(spire);
+
+        const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff1133 });
+        const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), beaconMat);
+        beacon.position.y = h + h2 + spireH;
+        bGroup.add(beacon);
+        beaconMeshes.push({ mesh: beacon, phase: Math.random() * Math.PI * 2 });
+      }
+    }
+
+    cityWorld.add(bGroup);
+  }
+
+  // Populate Downtown Districts (North & South of the River)
+  for (let gx = -140; gx <= 140; gx += 12) {
+    for (let gz = -130; gz <= 110; gz += 12) {
+      // Leave room for the river (-32 to +32) and main avenues
+      if (gz > -33 && gz < 33) continue;
+      if (Math.abs(gx) < 9) continue; // Central bridge highway corridor
+
+      const jitterX = gx + (Math.random() - 0.5) * 4;
+      const jitterZ = gz + (Math.random() - 0.5) * 4;
+      const distFromCenter = Math.hypot(jitterX, jitterZ);
+      if (distFromCenter > 155) continue;
+
+      const heightFactor = Math.max(0.3, 1.3 - distFromCenter / 130);
+      const w = 4.5 + Math.random() * 5.0;
+      const d = 4.5 + Math.random() * 5.0;
+      const h = (8 + Math.random() * 34) * heightFactor;
+      const style = Math.floor(Math.random() * 3);
+
+      addSkyscraper(jitterX, jitterZ, w, h, d, style);
+    }
+  }
+
+  // 3. Iconic 3D Suspension Bridge across the River (at X = 0)
+  const bridgeGroup = new THREE.Group();
+  cityWorld.add(bridgeGroup);
+
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(10, 1.2, 85), roofDarkMat);
+  deck.position.set(0, -6, 0);
+  bridgeGroup.add(deck);
+
+  // Bridge neon side rails
+  [-4.8, 4.8].forEach(rx => {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 85), neonCyanMat);
+    rail.position.set(rx, -5.2, 0);
+    bridgeGroup.add(rail);
+  });
+
+  // Two tall H-pylons for the bridge
+  [-18, 18].forEach(pz => {
+    [-4.2, 4.2].forEach(px => {
+      const pylon = new THREE.Mesh(new THREE.BoxGeometry(1.4, 34, 1.4), roofDarkMat);
+      pylon.position.set(px, 2, pz);
+      bridgeGroup.add(pylon);
+    });
+    const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(10, 1.4, 1.4), neonPinkMat);
+    crossBeam.position.set(0, 14, pz);
+    bridgeGroup.add(crossBeam);
+  });
+
+  // 4. Giant 3D Illuminated Ferris Wheel (Ruota Panoramica - Fantavision Stage 1 tribute)
+  const ferrisGroup = new THREE.Group();
+  ferrisGroup.position.set(-34, 4, -36);
+  ferrisGroup.rotation.y = 0.35;
+  cityWorld.add(ferrisGroup);
+
+  // Support legs
+  [-2.5, 2.5].forEach(lz => {
+    const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.7, 22, 8), roofDarkMat);
+    legL.position.set(-4, -9, lz);
+    legL.rotation.z = -0.22;
+    ferrisGroup.add(legL);
+
+    const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.7, 22, 8), roofDarkMat);
+    legR.position.set(4, -9, lz);
+    legR.rotation.z = 0.22;
+    ferrisGroup.add(legR);
+  });
+
+  const ferrisWheelSpinner = new THREE.Group();
+  ferrisGroup.add(ferrisWheelSpinner);
+
+  const wheelRadius = 15;
+  const wheelRim1 = new THREE.Mesh(new THREE.TorusGeometry(wheelRadius, 0.35, 8, 36), neonPinkMat);
+  wheelRim1.position.z = 1.4;
+  ferrisWheelSpinner.add(wheelRim1);
+
+  const wheelRim2 = new THREE.Mesh(new THREE.TorusGeometry(wheelRadius, 0.35, 8, 36), neonCyanMat);
+  wheelRim2.position.z = -1.4;
+  ferrisWheelSpinner.add(wheelRim2);
+
+  for (let s = 0; s < 12; s++) {
+    const angle = (s / 12) * Math.PI * 2;
+    const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, wheelRadius * 2, 6), neonGoldMat);
+    spoke.rotation.z = angle;
+    ferrisWheelSpinner.add(spoke);
+
+    // Gondola cabin
+    const cabin = new THREE.Mesh(
+      new THREE.SphereGeometry(0.9, 10, 10),
+      s % 2 === 0 ? neonCyanMat : neonPinkMat
+    );
+    cabin.position.set(Math.cos(angle) * wheelRadius, Math.sin(angle) * wheelRadius, 0);
+    ferrisWheelSpinner.add(cabin);
+  }
+
+  // 5. Floating Firework Launch Barges on the River
+  const launchPadPositions = [];
+  [-28, -10, 12, 30].forEach(bx => {
+    const bz = (Math.random() - 0.5) * 14;
+    const barge = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 3.5), roofDarkMat);
+    barge.position.set(bx, -14.2, bz);
+    cityWorld.add(barge);
+
+    const padLight = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.3, 2.2), neonGoldMat);
+    padLight.position.set(bx, -13.5, bz);
+    cityWorld.add(padLight);
+    launchPadPositions.push(new THREE.Vector3(bx, -13.2, bz));
+  });
+
+  // 6. Moving 3D Traffic Cars on Bridge & Waterfront Avenues
+  const trafficCars = [];
+  const carGeo = new THREE.BoxGeometry(0.9, 0.45, 1.8);
+  const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffdd });
+  const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff1133 });
+
+  for (let i = 0; i < 48; i++) {
+    const onBridge = i < 18;
+    const dir = i % 2 === 0 ? 1 : -1;
+    const mat = dir > 0 ? headlightMat : taillightMat;
+    const car = new THREE.Mesh(carGeo, mat);
+
+    if (onBridge) {
+      car.position.set(dir * 2.1, -5.1, (Math.random() - 0.5) * 80);
+      trafficCars.push({ mesh: car, axis: 'z', speed: dir * (14 + Math.random() * 8), limit: 42 });
+    } else {
+      car.rotation.y = Math.PI / 2;
+      const roadZ = (i % 4 < 2) ? -29 : 29;
+      car.position.set((Math.random() - 0.5) * 180, -12.4, roadZ + dir * 1.1);
+      trafficCars.push({ mesh: car, axis: 'x', speed: dir * (16 + Math.random() * 10), limit: 95 });
+    }
+    cityWorld.add(car);
+  }
+
+  // 7. 3D Starfield Dome
   const starGeo = new THREE.BufferGeometry();
-  const starCount = 350;
+  const starCount = 450;
   const starPositions = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount * 3; i += 3) {
-    starPositions[i] = (Math.random() - 0.5) * 200;
-    starPositions[i + 1] = Math.random() * 80;
-    starPositions[i + 2] = -50 - Math.random() * 100;
+    const r = 220 + Math.random() * 120;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI * 0.46;
+    starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
+    starPositions[i + 1] = r * Math.cos(phi) + 10;
+    starPositions[i + 2] = r * Math.sin(phi) * Math.sin(theta);
   }
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.75 });
-  const starPoints = new THREE.Points(starGeo, starMat);
-  scene.add(starPoints);
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.3, transparent: true, opacity: 0.8 });
+  scene.add(new THREE.Points(starGeo, starMat));
 
+  // ==========================================
+  // CAMERA FLIGHT & PLAY-PLANE ARENA
+  // ==========================================
+  // The playArena group always stays in front of the camera so 3D fireworks
+  // rise over the 3D city while remaining easy to catch with touch/mouse!
+  const playArena = new THREE.Group();
+  scene.add(playArena);
+
+  let cameraMode = 'FLIGHT'; // 'FLIGHT' | 'PANORAMA'
+  let camAngle = 0;
+
+  function updateCameraAndArena(now, dt) {
+    if (cameraMode === 'FLIGHT') {
+      camAngle += dt * 0.14;
+      const radius = 58 + Math.sin(now * 0.0003) * 8;
+      const camX = Math.sin(camAngle) * radius;
+      const camZ = Math.cos(camAngle) * radius * 0.78;
+      const camY = 9 + Math.sin(now * 0.0005) * 5;
+
+      camera.position.set(camX, camY, camZ);
+      camera.lookAt(0, 7, 0);
+    } else {
+      const swayX = Math.sin(now * 0.00035) * 14;
+      const swayY = 6 + Math.sin(now * 0.0005) * 2.5;
+      camera.position.set(swayX, swayY, 54);
+      camera.lookAt(0, 10, 0);
+    }
+
+    camera.updateMatrixWorld();
+
+    // Place the firework play-arena 45 units in front of the camera, aligned with view
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    playArena.position.copy(camera.position).addScaledVector(forward, 45);
+    playArena.quaternion.copy(camera.quaternion);
+  }
+
+  // ==========================================
+  // GAME STATE & ENTITIES
+  // ==========================================
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
   const rawPointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -441,10 +771,11 @@
   });
   const chainLine = new THREE.Line(chainLineGeo, chainLineMat);
   chainLine.frustumCulled = false;
-  scene.add(chainLine);
+  playArena.add(chainLine);
 
+  // Explosion & Rocket Trail Particles (in playArena space)
   const explosionParticles = [];
-  const MAX_PARTICLES = 1600;
+  const MAX_PARTICLES = 1800;
   const particleGeo = new THREE.BufferGeometry();
   const partPos = new Float32Array(MAX_PARTICLES * 3);
   const partColors = new Float32Array(MAX_PARTICLES * 3);
@@ -468,12 +799,12 @@
   }
 
   const particleMat = new THREE.PointsMaterial({
-    size: 1.8, vertexColors: true, transparent: true, opacity: 1.0,
+    size: 1.9, vertexColors: true, transparent: true, opacity: 1.0,
     blending: THREE.AdditiveBlending, depthWrite: false, map: createParticleTexture()
   });
   const particleSystem = new THREE.Points(particleGeo, particleMat);
   particleSystem.frustumCulled = false;
-  scene.add(particleSystem);
+  playArena.add(particleSystem);
 
   for (let i = 0; i < MAX_PARTICLES; i++) {
     explosionParticles.push({
@@ -482,65 +813,121 @@
     });
   }
 
-  const flareGeo = new THREE.SphereGeometry(0.7, 16, 16);
-  const haloGeo = new THREE.RingGeometry(0.85, 1.25, 24);
+  // ==========================================
+  // 3D FLARE ROCKETS
+  // ==========================================
+  const hitSphereGeo = new THREE.SphereGeometry(1.45, 12, 12);
+  const coreGeo = new THREE.OctahedronGeometry(0.68, 1);
+  const haloGeo = new THREE.RingGeometry(0.95, 1.4, 24);
 
   function createFlareMesh(colorData) {
     const group = new THREE.Group();
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 });
-    const core = new THREE.Mesh(flareGeo, coreMat); group.add(core);
-    const auraMat = new THREE.MeshBasicMaterial({ color: colorData.hex, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending });
-    const aura = new THREE.Mesh(new THREE.SphereGeometry(1.05, 16, 16), auraMat); group.add(aura);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
-    const ring = new THREE.Mesh(haloGeo, ringMat); ring.visible = false; group.add(ring);
-    group.userData = { core, aura, ring };
+
+    // Invisible larger hit-sphere for easy touch/mouse selection
+    const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+    const hitSphere = new THREE.Mesh(hitSphereGeo, hitMat);
+    group.add(hitSphere);
+
+    // 3D Crystalline Glowing Core
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.96 });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    group.add(core);
+
+    // Outer 3D Aura Sphere
+    const auraMat = new THREE.MeshBasicMaterial({
+      color: colorData.hex, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending
+    });
+    const aura = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 16), auraMat);
+    group.add(aura);
+
+    // Target Lock Ring
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending
+    });
+    const ring = new THREE.Mesh(haloGeo, ringMat);
+    ring.visible = false;
+    group.add(ring);
+
+    group.userData = { hitSphere, core, aura, ring };
     return group;
+  }
+
+  function spawnTrailSpark(x, y, z, colorData) {
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      const p = explosionParticles[i];
+      if (p.active) continue;
+      const c = new THREE.Color(colorData.hex);
+      p.active = true;
+      p.x = x + (Math.random() - 0.5) * 0.3;
+      p.y = y - 0.4;
+      p.z = z + (Math.random() - 0.5) * 0.3;
+      p.vx = (Math.random() - 0.5) * 0.8;
+      p.vy = -1.5 - Math.random() * 1.5;
+      p.vz = (Math.random() - 0.5) * 0.8;
+      p.r = c.r; p.g = c.g; p.b = c.b;
+      p.life = 0; p.maxLife = 0.28 + Math.random() * 0.18;
+      p.size = 0.9;
+      break;
+    }
   }
 
   function spawnFlare() {
     if (flares.length >= MAX_ACTIVE_FLARES) return;
     let colorKey = COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)];
-    if (Math.random() < 0.08) colorKey = 'WILD';
+    if (Math.random() < 0.09) colorKey = 'WILD';
     const colorData = COLORS[colorKey];
     const mesh = createFlareMesh(colorData);
-    const startX = (Math.random() - 0.5) * 38;
-    const startY = -8 + Math.random() * 2;
-    const startZ = (Math.random() - 0.5) * 16;
+
+    const startX = (Math.random() - 0.5) * 36;
+    const startY = -17 + Math.random() * 2;
+    const startZ = (Math.random() - 0.5) * 10;
     mesh.position.set(startX, startY, startZ);
-    scene.add(mesh);
-    const floatDuration = 4.0 + Math.random() * 2.5;
+    playArena.add(mesh);
+
+    const floatDuration = 4.2 + Math.random() * 2.4;
     flares.push({
       mesh, colorKey, colorData, isWild: colorKey === 'WILD',
-      startX, startY, startZ,
-      vx: (Math.random() - 0.5) * 1.8, vy: 6.5 + Math.random() * 4.0, vz: (Math.random() - 0.5) * 1.0,
-      gravity: -1.8, age: 0, maxAge: floatDuration,
-      selected: false, hovered: false, pulsePhase: Math.random() * Math.PI * 2
+      vx: (Math.random() - 0.5) * 1.8,
+      vy: 8.2 + Math.random() * 3.8,
+      vz: (Math.random() - 0.5) * 0.8,
+      gravity: -1.85,
+      age: 0, maxAge: floatDuration,
+      selected: false, pulsePhase: Math.random() * Math.PI * 2,
+      trailAcc: 0
     });
   }
 
-  function triggerExplosion(x, y, z, colorData, count = 70, power = 1.0) {
+  function triggerExplosion(x, y, z, colorData, count = 75, power = 1.0) {
     let spawned = 0;
     const c = new THREE.Color(colorData.hex);
+
+    // Illuminate the 3D City below!
+    const worldPos = new THREE.Vector3(x, y, z).applyMatrix4(playArena.matrixWorld);
+    flashCityLight(worldPos, colorData.hex, 5.5 * power);
+
     for (let i = 0; i < MAX_PARTICLES; i++) {
       const p = explosionParticles[i];
       if (p.active) continue;
       p.active = true; p.x = x; p.y = y; p.z = z;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(Math.random() * 2 - 1);
-      const speed = (3.5 + Math.random() * 8.0) * power;
+      const speed = (3.5 + Math.random() * 8.5) * power;
       p.vx = Math.sin(phi) * Math.cos(theta) * speed;
       p.vy = Math.sin(phi) * Math.sin(theta) * speed + 1.2;
       p.vz = Math.cos(phi) * speed;
-      p.r = c.r + (Math.random() - 0.5) * 0.15;
-      p.g = c.g + (Math.random() - 0.5) * 0.15;
-      p.b = c.b + (Math.random() - 0.5) * 0.15;
-      p.life = 0; p.maxLife = 0.8 + Math.random() * 0.7;
-      p.size = (1.5 + Math.random() * 1.5) * power;
+      p.r = Math.min(1, c.r + (Math.random() - 0.5) * 0.18);
+      p.g = Math.min(1, c.g + (Math.random() - 0.5) * 0.18);
+      p.b = Math.min(1, c.b + (Math.random() - 0.5) * 0.18);
+      p.life = 0; p.maxLife = 0.85 + Math.random() * 0.75;
+      p.size = (1.6 + Math.random() * 1.6) * power;
       spawned++;
       if (spawned >= count) break;
     }
   }
 
+  // ==========================================
+  // CHAIN & DETONATION LOGIC
+  // ==========================================
   function trySelectFlare(flare) {
     if (gameState !== 'PLAYING') return;
     if (flare.selected) return;
@@ -578,11 +965,12 @@
     playExplosionTone(count, count >= 6);
 
     selectedFlares.forEach((f, idx) => {
-      const pos = f.mesh.position;
+      const pos = f.mesh.position.clone();
+      const col = f.colorData;
       setTimeout(() => {
-        triggerExplosion(pos.x, pos.y, pos.z, f.colorData, 55 + count * 6, 1.0 + count * 0.08);
+        triggerExplosion(pos.x, pos.y, pos.z, col, 60 + count * 6, 1.0 + count * 0.08);
       }, idx * 40);
-      scene.remove(f.mesh);
+      playArena.remove(f.mesh);
       const index = flares.indexOf(f);
       if (index > -1) flares.splice(index, 1);
     });
@@ -604,16 +992,19 @@
     showToast("STAR SPECIAL FINALE!", "var(--gold)");
     for (let k = 0; k < 6; k++) {
       setTimeout(() => {
-        const x = (Math.random() - 0.5) * 30;
-        const y = 14 + Math.random() * 12;
+        const x = (Math.random() - 0.5) * 28;
+        const y = 4 + Math.random() * 12;
         const color = COLORS[COLOR_KEYS[k % COLOR_KEYS.length]];
-        triggerExplosion(x, y, 0, color, 120, 1.8);
+        triggerExplosion(x, y, 0, color, 130, 1.8);
         playExplosionTone(10, true);
         score += 800; updateHUD();
       }, k * 220);
     }
   }
 
+  // ==========================================
+  // HUD UPDATES
+  // ==========================================
   const scoreDisplay = document.getElementById('score-display');
   const chainDisplay = document.getElementById('chain-display');
   const stageDisplay = document.getElementById('stage-display');
@@ -671,7 +1062,7 @@
     initAudio();
     score = 0; stage = 1; stageTimer = 60; dangerLevel = 0; starMeter = 0;
     maxComboRecorded = 0; totalExplosionsRecorded = 0;
-    flares.forEach(f => scene.remove(f.mesh));
+    flares.forEach(f => playArena.remove(f.mesh));
     flares.length = 0; selectedFlares.length = 0; currentChainColor = null;
     updateChainUI();
     for (let i = 0; i < MAX_PARTICLES; i++) explosionParticles[i].active = false;
@@ -696,6 +1087,9 @@
     document.getElementById('over-overlay').hidden = false;
   }
 
+  // ==========================================
+  // MAIN ANIMATION LOOP
+  // ==========================================
   let lastTime = performance.now();
 
   function animate(now) {
@@ -703,6 +1097,37 @@
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
+    // 1. Update Camera & 3D Metropolis animations
+    updateCameraAndArena(now, dt);
+
+    // Rotate 3D Ferris Wheel
+    ferrisWheelSpinner.rotation.z += dt * 0.25;
+
+    // Blink skyscraper aviation beacons
+    for (let i = 0; i < beaconMeshes.length; i++) {
+      const b = beaconMeshes[i];
+      const on = Math.sin(now * 0.004 + b.phase) > 0.2;
+      b.mesh.visible = on;
+    }
+
+    // Move 3D traffic cars along bridges & avenues
+    for (let i = 0; i < trafficCars.length; i++) {
+      const tc = trafficCars[i];
+      tc.mesh.position[tc.axis] += tc.speed * dt;
+      if (tc.mesh.position[tc.axis] > tc.limit) tc.mesh.position[tc.axis] = -tc.limit;
+      if (tc.mesh.position[tc.axis] < -tc.limit) tc.mesh.position[tc.axis] = tc.limit;
+    }
+
+    // Decay dynamic firework point lights on the city
+    for (let i = 0; i < fireworkLights.length; i++) {
+      const fl = fireworkLights[i];
+      if (fl.light.intensity > 0) {
+        fl.age += dt;
+        fl.light.intensity = Math.max(0, 6.0 * (1 - fl.age / fl.maxAge));
+      }
+    }
+
+    // 2. Gameplay Loop
     if (gameState === 'PLAYING') {
       stageTimer -= dt;
       if (stageTimer <= 0) {
@@ -722,18 +1147,37 @@
       for (let i = flares.length - 1; i >= 0; i--) {
         const f = flares[i];
         f.age += dt; f.vy += f.gravity * dt;
-        f.mesh.position.x += f.vx * dt; f.mesh.position.y += f.vy * dt; f.mesh.position.z += f.vz * dt;
+        f.mesh.position.x += f.vx * dt;
+        f.mesh.position.y += f.vy * dt;
+        f.mesh.position.z += f.vz * dt;
+
+        // Rising spark trail
+        f.trailAcc += dt;
+        if (f.vy > 0 && f.trailAcc > 0.06) {
+          f.trailAcc = 0;
+          spawnTrailSpark(f.mesh.position.x, f.mesh.position.y, f.mesh.position.z, f.colorData);
+        }
+
         f.pulsePhase += dt * 5;
         const scale = 1.0 + Math.sin(f.pulsePhase) * 0.15;
         f.mesh.userData.aura.scale.set(scale, scale, scale);
+        f.mesh.userData.core.rotation.y += dt * 3;
+        f.mesh.userData.core.rotation.x += dt * 2;
         if (f.selected) f.mesh.userData.ring.rotation.z += dt * 4;
+
+        // Rainbow cycle for WILD rockets
+        if (f.isWild) {
+          const hue = (now * 0.001) % 1;
+          f.mesh.userData.aura.material.color.setHSL(hue, 1.0, 0.55);
+        }
+
         const lifeFraction = f.age / f.maxAge;
         if (lifeFraction > 0.75) {
           const fade = 1 - (lifeFraction - 0.75) / 0.25;
           f.mesh.userData.core.material.opacity = fade * 0.95;
           f.mesh.userData.aura.material.opacity = fade * 0.65;
         }
-        if (f.age >= f.maxAge || f.mesh.position.y < -12) {
+        if (f.age >= f.maxAge || f.mesh.position.y < -19) {
           if (!f.selected) { dangerLevel += 6.5; playMissSound(); }
           else {
             const sIdx = selectedFlares.indexOf(f);
@@ -741,14 +1185,24 @@
             if (selectedFlares.length === 0) currentChainColor = null;
             updateChainUI();
           }
-          scene.remove(f.mesh); flares.splice(i, 1);
+          playArena.remove(f.mesh); flares.splice(i, 1);
         }
       }
 
+      if (selectedFlares.length >= 2) updateChainUI();
       if (dangerLevel >= 100) gameOver("Il cielo si è spento! Troppi fuochi d'artificio mancati.");
       updateHUD();
+    } else if (gameState === 'MENU') {
+      // Ambient background fireworks over the 3D city during menu
+      if (Math.random() < dt * 1.4) {
+        const rx = (Math.random() - 0.5) * 32;
+        const ry = -2 + Math.random() * 14;
+        const col = COLORS[COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)]];
+        triggerExplosion(rx, ry, -5, col, 65, 1.1);
+      }
     }
 
+    // 3. Update Particles
     let activePartCount = 0;
     for (let i = 0; i < MAX_PARTICLES; i++) {
       const p = explosionParticles[i];
@@ -768,12 +1222,14 @@
       particleGeo.attributes.color.needsUpdate = true;
       particleGeo.attributes.size.needsUpdate = true;
     }
-    camera.position.x = Math.sin(now * 0.0004) * 1.5;
-    camera.lookAt(0, 10, 0);
+
     renderer.render(scene, camera);
   }
   requestAnimationFrame(animate);
 
+  // ==========================================
+  // INPUT CONTROLS (MOUSE & TOUCH)
+  // ==========================================
   function updatePointer(e) {
     const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : rawPointer.x);
     const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : rawPointer.y);
@@ -783,8 +1239,8 @@
     crosshairEl.style.left = `${clientX}px`;
     crosshairEl.style.top = `${clientY}px`;
     raycaster.setFromCamera(pointer, camera);
-    const meshes = flares.map(f => f.mesh.children[0]);
-    const intersects = raycaster.intersectObjects(meshes);
+    const hitSpheres = flares.map(f => f.mesh.userData.hitSphere);
+    const intersects = raycaster.intersectObjects(hitSpheres);
     if (intersects.length > 0) {
       crosshairEl.classList.add('locked');
       const hitMesh = intersects[0].object.parent;
@@ -801,8 +1257,8 @@
     if (e.button === 2) { e.preventDefault(); detonateChain(); return; }
     initAudio(); updatePointer(e);
     raycaster.setFromCamera(pointer, camera);
-    const meshes = flares.map(f => f.mesh.children[0]);
-    const intersects = raycaster.intersectObjects(meshes);
+    const hitSpheres = flares.map(f => f.mesh.userData.hitSphere);
+    const intersects = raycaster.intersectObjects(hitSpheres);
     if (intersects.length > 0) {
       const hitMesh = intersects[0].object.parent;
       const targetFlare = flares.find(f => f.mesh === hitMesh);
@@ -833,6 +1289,12 @@
   audioToggle.addEventListener('click', () => {
     initAudio(); audioEnabled = !audioEnabled;
     audioToggle.textContent = audioEnabled ? 'AUDIO: ON' : 'AUDIO: OFF';
+  });
+
+  const camToggle = document.getElementById('cam-toggle');
+  camToggle.addEventListener('click', () => {
+    cameraMode = cameraMode === 'FLIGHT' ? 'PANORAMA' : 'FLIGHT';
+    camToggle.textContent = cameraMode === 'FLIGHT' ? 'CAM: VOLO 3D' : 'CAM: PANORAMA';
   });
 
   document.getElementById('start-btn').addEventListener('click', startGame);
