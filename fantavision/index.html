@@ -84,6 +84,26 @@ Non appena confermi il salvataggio su GitHub, la pagina si attiverà all'istante
 
 Vuoi che riprovi il git push automatico tra qualche istante nel caso il token GitHub si sia aggiornato?
 
+Fatto 
+
+Ho verificato il file caricato su GitHub: per errore è stato incollato il testo della conversazione della chat anziché il codice del gioco!
+
+Nessun problema, ho preparato un metodo semplicissimo in 2 passaggi per metterlo a posto:
+
+1. Copia il codice HTML corretto:
+
+👉 Tocca qui per visualizzare e copiare il codice di Fantavision (Seleziona tutto e premi Copia)
+
+2. Sostituiscilo su GitHub:
+
+👉 Tocca qui per modificare il file su GitHub
+
+Cancella il contenuto attuale
+Incolla il codice copiato
+Tocca il pulsante verde in alto a destra "Commit changes..." (Salva modifiche)
+
+Appena salvato, il gioco sarà finalmente online e attivo al tuo link: 🌐 https://marcobiondi-prog.github.io/minigaame.github.io/fantavision/
+
 <!doctype html>
 <html lang="it">
 <head>
@@ -121,5 +141,5 @@ Vuoi che riprovi il git push automatico tra qualche istante nel caso il token Gi
     cursor: crosshair; touch-action: none;
   }
   canvas { display: block; width: 100%; height: 100%; }
-  /* HUD */
   .hud {
+    position: absolute; top: 0; left: 0; right: 0; pointer-events: none;
